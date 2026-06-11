@@ -32,6 +32,16 @@ replaces the local simulation with this stream.
   ]
 }
 
+// plant copilot chat — free-form question answered from live source-system
+// data. history is the client-kept transcript (last ≤16 turns); board gives
+// the copilot the current Gantt for dry-run negotiations.
+{
+  "type": "chat",
+  "text": "Why would WO-4480 fail?",
+  "history": [ { "role": "user", "content": "…" }, { "role": "assistant", "content": "…" } ],
+  "board": [ /* same shape as schedule_order.board */ ]
+}
+
 // liveness
 { "type": "ping" }
 ```
@@ -66,6 +76,14 @@ Every server frame uses one envelope:
 | `verdict` | orchestrator | see below — **terminal: true** |
 | `error` | – | `{ message }` — terminal if the run cannot continue |
 | `pong` | – | `{}` |
+| `chat_started` | – | `{ llm: bool }` — copilot turn opened (LLM or rules mode) |
+| `chat_tool_call` | – | `{ tool, source: "CMMS"\|"MES"\|"QMMS"\|"ERP"\|"ORCHESTRATOR", args }` — streamed live as the copilot queries source systems |
+| `chat_response` | – | `{ text }` — the answer (light markdown) — **terminal: true** |
+
+Chat turns use their own `run_id` (`chat-<hex>`) with the same monotonic `seq`.
+The copilot's `negotiate_order` tool dry-runs the full four-agent negotiation —
+it shows up as a single `chat_tool_call` with `source: "ORCHESTRATOR"` and
+schedules nothing.
 
 ### `verdict` payload
 

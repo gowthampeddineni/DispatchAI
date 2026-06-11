@@ -51,13 +51,25 @@ served with a live WebSocket bridge. A badge bottom-right shows
 **● LIVE multi-agent backend** when connected. Click any order in the queue
 (or **▶ Auto-Schedule All**) and watch the four agents stream their positions.
 
+Two ways to see the backend at work directly:
+
+- **🟢 Ask DispatchAI** (bottom-right) — a plant copilot chatting over the same
+  WebSocket. Ask *"Why would WO-4480 fail?"*, *"Which line is in the best
+  shape?"*, *"Status of MMF-OM4?"* — every CMMS / MES / QMMS / ERP tool call the
+  backend makes streams in as a colored chip, and `negotiate_order` dry-runs the
+  full four-agent negotiation without touching the board. Works without an
+  OpenAI key too (deterministic lookup mode).
+- **+ New Order** (queue panel) — enter your own work order (fiber type, op,
+  quantity, due date, customer) and hit **🤝 Negotiate now**: it goes through
+  the real LangGraph fan-out and lands on the board with a verdict.
+
 Other entry points:
 
 ```bash
 python main.py demo                 # one full negotiation in the terminal
 python main.py demo WO-4480         # ...for a specific queued order
 python main.py seed                 # rebuild data/dispatchai.db from scratch
-pytest                              # 35 tests: tools, agents, verdict, WS smoke
+pytest                              # 41 tests: tools, agents, verdict, chat, WS smoke
 ```
 
 ## Environment variables (`.env`)
@@ -99,7 +111,9 @@ The original `dispatchai-demo.html` is untouched and still works standalone.
 Documented in [docs/websocket-contract.md](docs/websocket-contract.md). Per
 negotiation: `run_started` → 4 × `agent_position` (streamed in completion
 order — agents run concurrently) → `orchestrator_note` → `verdict`
-(terminal). Client sends `get_state` / `schedule_order` / `ping`.
+(terminal). Copilot turns: `chat_started` → n × `chat_tool_call` (live, one per
+source-system query) → `chat_response` (terminal). Client sends `get_state` /
+`schedule_order` / `chat` / `ping`.
 
 ## Build phases (each one was kept runnable)
 

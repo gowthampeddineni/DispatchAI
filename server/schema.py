@@ -13,9 +13,10 @@ CONTRACT_VERSION = 1
 EventType = Literal[
     "state", "run_started", "agent_started", "agent_position", "agent_degraded",
     "orchestrator_note", "verdict", "error", "pong",
+    "chat_started", "chat_tool_call", "chat_response",
 ]
 
-TERMINAL_TYPES = {"verdict"}
+TERMINAL_TYPES = {"verdict", "chat_response"}
 
 
 class Envelope(BaseModel):
@@ -44,6 +45,18 @@ class ScheduleOrder(BaseModel):
     start_hr: float | None = None
     fam_spread: float = 1.0
     board: list[BoardBlock] = Field(default_factory=list)
+
+
+class ChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ChatMessage(BaseModel):
+    type: Literal["chat"]
+    text: str
+    history: list[ChatTurn] = Field(default_factory=list)   # client keeps the transcript
+    board: list[BoardBlock] = Field(default_factory=list)   # current Gantt snapshot
 
 
 class Ping(BaseModel):

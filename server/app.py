@@ -16,7 +16,8 @@ import tools
 from config import settings
 from domain import Order, Proposal
 from orchestrator import duration_h, fmt_t, plan_slot, run_negotiation
-from server.schema import Envelope, ScheduleOrder, TERMINAL_TYPES
+from server.chat import handle_chat
+from server.schema import ChatMessage, Envelope, ScheduleOrder, TERMINAL_TYPES
 
 log = logging.getLogger("dispatchai.server")
 FRONTEND = Path(__file__).resolve().parent.parent / "frontend" / "dispatchai-demo-live.html"
@@ -146,6 +147,17 @@ async def ws_endpoint(ws: WebSocket) -> None:
                     ).model_dump_json())
                     continue
                 await handle_schedule_order(ws, msg)
+            elif mtype == "chat":
+                try:
+                    chat = ChatMessage(**data)
+                except ValidationError as exc:
+                    await ws.send_text(Envelope(
+                        type="error", terminal=True,
+                        payload={"message": f"bad chat: {exc.errors()[:2]}"},
+                    ).model_dump_json())
+                    continue
+                stream = RunStream(ws, "chat-" + uuid.uuid4().hex[:8])
+                await handle_chat(chat, stream.send)
             else:
                 await ws.send_text(Envelope(
                     type="error", payload={"message": f"unknown message type: {mtype}"}

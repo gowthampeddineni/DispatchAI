@@ -61,6 +61,7 @@ class Settings(BaseSettings):
             "planning": self.large_model,
             "synthesis": self.large_model,
             "fix_suggestion": self.large_model,
+            "chat": self.large_model,          # copilot Q&A reasons across systems
         }
         return routing.get(task, self.small_model)
 

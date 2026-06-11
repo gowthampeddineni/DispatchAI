@@ -1,7 +1,8 @@
 """Tests run against the deterministic policy engine (no OpenAI key needed)."""
 import os
 
-os.environ["DISPATCHAI_LLM_MODE"] = "rules"  # before config import
+os.environ["DISPATCHAI_LLM_MODE"] = "rules"               # before config import
+os.environ["DISPATCHAI_DB"] = "data/dispatchai-test.db"   # never fight a running server
 
 import pytest
 

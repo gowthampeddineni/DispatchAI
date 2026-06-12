@@ -1,0 +1,15 @@
+asset_id,from_family,to_family,changeover_min,notes
+WC-01,CNC_A,CNC_A,30,Same family - tool swap only
+WC-01,CNC_A,CNC_B,75,Different program + fixture
+WC-01,CNC_B,CNC_A,75,Different program + fixture
+WC-01,CNC_B,CNC_B,30,Same family - tool swap only
+WC-02,ASSY_A,ASSY_A,20,Minor jig change
+WC-02,ASSY_A,ASSY_B,90,Full line reconfiguration
+WC-02,ASSY_B,ASSY_A,90,Full line reconfiguration
+WC-02,ASSY_B,ASSY_B,20,Minor jig change
+WC-02,ASSY_A,CNC_B,120,Full fixture change - reduced throughput
+WC-02,CNC_B,ASSY_A,120,Full fixture change
+WC-03,COAT_A,COAT_A,45,Color change + purge
+WC-03,COAT_A,COAT_B,90,Full chemistry change
+WC-03,COAT_B,COAT_A,90,Full chemistry change
+WC-03,COAT_B,COAT_B,45,Color change + purge

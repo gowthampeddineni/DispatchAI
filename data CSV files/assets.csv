@@ -1,0 +1,8 @@
+asset_id,asset_name,asset_type,location,parent_asset_id,status,installed_date,notes
+WC-01,CNC Machining Center,work_center,Bay A,,available,2019-03-15,
+WC-02,Assembly Line,work_center,Bay B,,available,2018-07-20,
+WC-03,Paint & Coating,work_center,Bay C,,available,2020-11-05,
+MC-01A,CNC Mill #1,machine,Bay A,WC-01,available,2019-03-15,
+MC-01B,CNC Lathe #1,machine,Bay A,WC-01,available,2021-06-10,
+MC-02A,Assembly Station A,machine,Bay B,WC-02,available,2018-07-20,
+MC-03A,Paint Booth 1,machine,Bay C,WC-03,available,2020-11-05,

@@ -1,0 +1,12 @@
+part_id,part_name,part_family,customer,capable_assets,preferred_asset,unit_of_measure,cycle_time_min,notes
+P-1001,Transmission Housing,CNC_A,AutoCorp,{WC-01},WC-01,PCS,42.00,
+P-1002,Drive Shaft Flange,CNC_A,AutoCorp,{WC-01},WC-01,PCS,28.50,
+P-1003,Bearing Carrier,CNC_B,MechaTech,{WC-01},WC-01,PCS,35.00,
+P-2001,Valve Body Assembly,ASSY_A,FluidSys,"{WC-02,WC-01}",WC-02,PCS,55.00,
+P-2002,Sensor Bracket Kit,ASSY_A,FluidSys,{WC-02},WC-02,PCS,18.00,
+P-2003,Actuator Subassembly,ASSY_B,RoboArm,{WC-02},WC-02,PCS,72.00,
+P-3001,Chassis Frame Panel,COAT_A,BodyWorks,"{WC-03,WC-02}",WC-03,PCS,25.00,
+P-3002,Engine Cover,COAT_A,AutoCorp,{WC-03},WC-03,PCS,30.00,
+P-3003,Exhaust Heat Shield,COAT_B,AutoCorp,{WC-03},WC-03,PCS,15.00,
+P-1099,Precision Gearbox Cover,CNC_B,TierOne_A,"{WC-01,WC-02}",WC-01,PCS,38.00,
+P-9001,Assembly Fixture Bracket,Brackets,,{WC-02},WC-02,PCS,45.00,WC-02 only — no alternative asset capable

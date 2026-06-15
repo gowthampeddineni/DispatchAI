@@ -1,0 +1,58 @@
+order_id,part_id,customer,customer_tier,quantity,unit_of_measure,priority,status,release_date,required_start,ship_date,planned_asset_id,planned_shift_id,estimated_hours,notes
+WO-1001,P-1001,AutoCorp,1,120,PCS,90,scheduled,2026-03-13,2026-03-16,2026-03-18,WC-01,2026-03-16-M,4.20,
+WO-1002,P-2001,FluidSys,2,80,PCS,60,scheduled,2026-03-14,2026-03-16,2026-03-19,WC-02,2026-03-16-M,3.50,
+WO-1003,P-3001,BodyWorks,2,200,PCS,50,scheduled,2026-03-15,2026-03-16,2026-03-20,WC-03,2026-03-16-M,5.00,
+WO-1004,P-1002,AutoCorp,1,60,PCS,70,scheduled,2026-03-14,2026-03-16,2026-03-18,WC-01,2026-03-16-A,2.80,
+WO-1005,P-2002,FluidSys,2,150,PCS,55,scheduled,2026-03-15,2026-03-16,2026-03-19,WC-02,2026-03-16-A,4.50,
+PO-2847,P-1099,TierOne_A,1,180,PCS,95,scheduled,2026-03-16,2026-03-16,2026-03-21,WC-01,,6.80,
+PO-3001,P-1003,MechaTech,1,95,PCS,92,scheduled,2026-03-16,2026-03-16,2026-03-19,,,4.50,"EXPEDITE - customer escalation, bearing carrier needed for line stoppage"
+PO-3002,P-1003,MechaTech,1,95,PCS,92,scheduled,2026-03-15,2026-03-12,2026-03-19,,,4.50,"EXPEDITE - customer escalation, bearing carrier needed for line stoppage"
+WO-2001,P-1001,AutoParts_Co,2,60,PCS,55,scheduled,2026-03-16,2026-03-17,2026-03-24,,,3.50,Standard production run - Transmission Housing
+WO-EXP-01,P-1099,TierOne_A,1,120,PCS,98,scheduled,2026-03-16,2026-03-16,2026-03-18,,,5.50,"EXPEDITE - customer line stoppage, Precision Gearbox Cover urgent"
+WO-EXP-02,P-2001,MidWest_Motors,2,80,PCS,88,scheduled,2026-03-16,2026-03-16,2026-03-19,,,3.50,"EXPEDITE - Valve Body Assembly, only runs on WC-02"
+WO-LOW-01,P-3001,SmallCo_Z,3,40,PCS,20,scheduled,2026-03-16,2026-03-17,2026-03-28,,,2.50,"Standard run - low priority, 12 days lead time, Tier 3 customer"
+WO-MAT-01,P-1002,Detroit_Assembly,2,300,PCS,75,scheduled,2026-03-16,2026-03-16,2026-03-20,,,6.00,"MATERIAL SHORTAGE - raw stock not received, supplier delay confirmed"
+WO-LONG-01,P-1001,TierOne_A,1,500,PCS,85,scheduled,2026-03-16,2026-03-17,2026-03-22,,,14.50,"Large batch - Transmission Housing, 14.5hrs, spans 2 shifts minimum"
+WO-CNF-01,P-1002,MechaTech,2,120,PCS,80,scheduled,2026-03-16,2026-03-17,2026-03-21,,,3.80,"Drive Shaft Flange - WC-01 preferred, competes with existing WC-01 queue"
+WO-STD-01,P-3001,AutoParts_Co,2,200,PCS,45,scheduled,2026-03-16,2026-03-17,2026-03-26,,,5.00,"Standard run - Chassis Frame Panel, WC-03 post-PM, comfortable lead time"
+WO-TEST-01,P-1001,AutoParts_Co,2,75,PCS,60,scheduled,2026-03-17,2026-03-17,2026-03-25,,,3.50,Standard run - Transmission Housing
+WO-TEST-02,P-3001,BodyWorks,2,50,PCS,40,scheduled,2026-03-17,2026-03-17,2026-03-27,,,4.00,Standard run - Chassis Frame Panel
+WO-TEST-03,P-1099,TierOne_A,1,90,PCS,88,scheduled,2026-03-17,2026-03-17,2026-03-22,,,5.20,Precision Gearbox Cover - Tier 1 customer
+WO-TEST-04,P-1099,TierOne_A,1,90,PCS,88,scheduled,2026-03-17,2026-03-17,2026-03-22,,,5.20,Precision Gearbox Cover - Tier 1 customer
+WO-TEAMS-01,P-3001,BodyWorks,2,120,PCS,65,scheduled,2026-03-17,2026-03-17,2026-03-24,,,4.00,Chassis Frame Panel - standard run
+WO-TEAMS-02,P-3001,BodyWorks,2,120,PCS,65,scheduled,2026-03-17,2026-03-17,2026-03-23,,,4.00,Chassis Frame Panel - standard run
+WO-TEAMS-03,P-3001,BodyWorks,2,120,PCS,65,scheduled,2026-03-17,2026-03-17,2026-03-25,,,4.00,Chassis Frame Panel - standard run
+WO-TEAMS-04,P-3001,BodyWorks,2,120,PCS,65,scheduled,2026-03-17,2026-03-17,2026-03-26,,,4.00,Chassis Frame Panel - standard run
+WO-TEAMS-05,P-3001,BodyWorks,2,120,PCS,65,scheduled,2026-03-17,2026-03-17,2026-03-27,,,4.00,Chassis Frame Panel - standard run
+WO-TEAMS-DEMO,P-1099,TierOne_A,1,150,PCS,90,scheduled,2026-03-17,2026-03-17,2026-03-22,,,6.00,Precision Gearbox Cover — Tier 1 demo order
+WO-IGN-01,P-1001,AutoParts_Co,2,80,PCS,65,scheduled,2026-03-17,2026-03-17,2026-03-25,,,3.80,Transmission Housing - Ignition integration test
+WO-LOG-01,P-1099,AutoParts_Co,2,100,PCS,70,scheduled,2026-03-18,2026-03-18,2026-03-26,,,4.50,Precision Gearbox Cover - event log test
+WO-CHAT-01,P-1001,Detroit_Assembly,2,60,PCS,72,scheduled,2026-03-18,2026-03-18,2026-03-27,,,3.20,Transmission Housing - chat popup test
+WO-CHAT-03,P-3001,BodyWorks,2,90,PCS,58,scheduled,2026-03-18,2026-03-18,2026-03-28,,,4.00,Chassis Frame Panel - chat test
+WO-CHAT-04,P-3001,BodyWorks,2,90,PCS,58,scheduled,2026-03-18,2026-03-18,2026-03-28,,,4.00,Chassis Frame Panel - chat test
+WO-CHAT-02,P-1099,TierOne_A,1,120,PCS,88,scheduled,2026-03-18,2026-03-18,2026-03-23,,,5.50,Scheduled by AI — WC-01 06:00-11:30 — WO-CHAT-02 is a Tier 1 customer order (TierOne_A) with hard ship date 2026-03-23. Safety override rule mandates WC-02 ca
+WO-CHAT-08,P-3001,BodyWorks,2,90,PCS,58,scheduled,2026-03-18,2026-03-18,2026-03-28,,,4.00,Scheduled by AI — WC-03 06:00-10:00 — Safety override: maintenance constraint (WC-02 critical health + bearing drift) supersedes asset diversification prefere
+WO-FAIL-01,P-9001,TierOne_A,1,75,PCS,97,on_hold,2026-03-16,2026-03-16,2026-03-16,,,4.00,"Escalated to planner — UNANIMOUS CONSENSUS ON BLOCKING: This is not a scheduling conflict but a safety/risk consensus. Maintenance, Production, and Supply_Chain all independ"
+WO-TEAMS-06,P-3001,BodyWorks,2,120,PCS,65,scheduled,2026-03-17,2026-03-17,2026-03-28,,,4.00,"Scheduled by AI — WC-03 06:00-14:00 — CONSENSUS POSITION: Three agents (MAINTENANCE, PRODUCTION, QUALITY) converge on WC-03 scheduling in shift 2026-03-17, pr"
+WO-CHAT-09,P-3001,BodyWorks,2,90,PCS,58,scheduled,2026-03-19,2026-03-19,2026-04-22,,,4.00,Scheduled by AI — WC-03 07:00-11:00 — All four agents unanimously support WC-03 assignment. Safety constraint (WC-02 critical health) is non-negotiable per or
+WO-CHAT-07,P-3001,BodyWorks,2,90,PCS,58,on_hold,2026-03-18,2026-03-18,2026-03-28,,,4.00,"Escalated to planner — MAINTENANCE safety override applies: WC-02 bearing wear (vibration 87% threshold, failure probability 34%) violates safety-first rule. WC-02 is remove"
+WO-TEAMS-07,P-3001,BodyWorks,2,120,PCS,65,scheduled,2026-03-17,2026-03-17,2026-03-28,,,4.00,"Scheduled by AI — WC-03 10:00-14:00 — Three of four agents (MAINTENANCE, PRODUCTION, QUALITY) converge on WC-03 as sole viable asset. MAINTENANCE safety const"
+WO-CHAT-05,P-3001,BodyWorks,2,90,PCS,58,scheduled,2026-03-18,2026-03-18,2026-03-28,,,4.00,"Scheduled by AI — WC-03 06:00-10:00 — Three of four agents (Maintenance, Production, Quality) unanimously concur on WC-03 placement. Safety-critical maintenan"
+WO-CHAT-06,P-3001,BodyWorks,2,90,PCS,58,scheduled,2026-03-18,2026-03-18,2026-03-28,,,4.00,"Scheduled by AI — WC-03 2026-03-24 to 2026-03-27 (scheduled within 10-day window) — All four agents have converged on WC-03 as the sole viable asset:
+- MAINTENANCE: Accepts WC-03; blocks WC-02 due to crit"
+WO-CHAT-10,P-3001,BodyWorks,2,90,PCS,58,scheduled,2026-03-19,2026-03-19,2026-04-22,,,4.00,Scheduled by AI — WC-03 06:00-10:00 — All agents agree on WC-03 asset selection and quality/capability. SUPPLY_CHAIN provided operational feasibility (post-WO
+WO-NEW-03,P-9001,AlphaOmega,2,50,PCS,78,on_hold,2026-03-18,2026-03-19,2026-03-19,,,50.00,Escalated to planner — UNRESOLVABLE CONFLICT: Order WO-NEW-03 requires ['WC-02'] but Maintenance blocks it (critical asset health) and Quality blocks it (active SPC alert / 
+WO-NEW-01,P-9001,AlphaOmega,2,50,PCS,78,scheduled,2026-03-18,2026-03-19,2026-03-19,,,50.00,Scheduled by AI — WC-02 06:00-14:00 — Consensus synthesis of agent positions: Safety (Maintenance) and Quality constraints are non-negotiable per synthesis ru
+WO-NEW-18,P-1001,MechaTech,2,75,PCS,68,on_hold,2026-03-18,2026-03-18,2026-03-26,,,3.50,"Escalated to planner — PRODUCTION''s constraint (before 2026-03-24 PM) cannot be honored without displacing Tier 1 orders, violating priority hierarchy. However, WO-NEW-18 ca"
+WO-SPLIT-01,P-2001,MidWest_Motors,2,200,PCS,75,scheduled,2026-03-18,2026-03-18,2026-03-21,,,6.50,"Scheduled by AI — WC-01 06:00-10:12 — The three objecting agents (Maintenance, Quality, Supply_Chain) form a consensus to BLOCK WO-SPLIT-01 from 2026-03-18 sh"
+WO-RUN-03,P-3001,BodyWorks,2,150,PCS,60,released,2026-03-18,2026-03-18,2026-03-27,,,4.20,Chassis Frame Panel - standard
+WO-RUN-01,P-1001,AutoParts_Co,2,80,PCS,65,scheduled,2026-03-18,2026-03-18,2026-03-26,,,3.50,Scheduled by AI — WC-01 06:00-09:30 — All four agents converge on WC-01 as the only capable asset. MAINTENANCE confirms WC-01 approved and WC-02 blocked (safe
+WO-RUN-11,P-1001,AutoParts_Co,2,80,PCS,65,released,2026-03-18,2026-03-18,2026-03-26,,,3.50,Transmission Housing - batch test
+WO-RUN-04,P-2001,Detroit_Assembly,2,90,PCS,72,scheduled,2026-03-18,2026-03-18,2026-03-24,,,4.80,Scheduled by AI — WC-01 06:00-14:00 — All four agents converge on WC-01 assignment. MAINTENANCE and PRODUCTION prioritize asset reliability over capacity pref
+WO-RUN-05,P-1002,MechaTech,3,60,PCS,45,scheduled,2026-03-18,2026-03-18,2026-03-29,,,2.80,Scheduled by AI — WC-01 DEFER — WO-RUN-05 cannot be accommodated on 2026-03-18 shift without violating Tier 1 commitments (Synthesis Rule: Safety constr
+WO-RUN-02,P-1099,TierOne_A,1,100,PCS,92,scheduled,2026-03-18,2026-03-18,2026-03-22,,,5.00,"Scheduled by AI — WC-01 06:00-11:30 — This proposal satisfies all three agent constraints: (1) MAINTENANCE—WC-02 immediately taken offline for PM, eliminating"
+WO-RUN-12,P-1099,TierOne_A,1,100,PCS,92,released,2026-03-18,2026-03-18,2026-03-22,,,5.00,Precision Gearbox Cover - Tier 1 urgent
+WO-RUN-13,P-3001,BodyWorks,2,150,PCS,60,released,2026-03-18,2026-03-18,2026-03-27,,,4.20,Chassis Frame Panel - standard
+WO-RUN-14,P-2001,Detroit_Assembly,2,90,PCS,72,released,2026-03-18,2026-03-18,2026-03-24,,,4.80,Valve Body Assembly - mid priority
+WO-RUN-16,P-1099,TierOne_A,1,50,PCS,99,scheduled,2026-03-18,2026-03-18,2026-03-19,,,2.50,Scheduled by AI — WC-01 06:00-08:30 — WO-RUN-16 is a Tier 1 customer commitment that shipped YESTERDAY (2026-03-19 ship date is -1 days). Maintenance agent co
+WO-RUN-15,P-1002,MechaTech,3,60,PCS,45,scheduled,2026-03-18,2026-03-18,2026-03-29,,,2.80,Scheduled by AI — WC-01 06:00-14:00 — Supply Chain objection centers on Tier 1 queue conflict and delivery risk. The proposed amendment front-loads WO-RUN-15 

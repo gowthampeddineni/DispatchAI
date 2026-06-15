@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dispatchai",
+      "runtimeExecutable": ".venv\\Scripts\\python.exe",
+      "runtimeArgs": ["main.py", "serve", "--port", "8000"],
+      "port": 8000,
+      "autoPort": false
+    }
+  ]
+}

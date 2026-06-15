@@ -1,0 +1,5 @@
+pm_id,asset_id,pm_type,description,scheduled_date,due_date,estimated_hours,status,completed_at,technician,notes
+00c00a67-d42b-4b76-84ff-92c158493bff,WC-01,preventive,Spindle bearing inspection + lubrication,2026-03-21,2026-03-24,3.0,scheduled,,,
+ebe5e4c1-b06e-443a-9092-2d6d3bf502c9,WC-02,preventive,Drive motor bearing replacement + alignment check,2026-03-27,2026-03-27,4.0,scheduled,,,
+00e0352d-2c39-42ec-9627-89fe1c829261,WC-03,preventive,Nozzle cleaning + pump seal replacement,2026-03-13,2026-03-13,2.5,completed,,,
+2d45af8b-c190-41af-b9c3-a0b8ca93d005,WC-03,preventive,Nozzle cleaning + pump seal replacement,2026-04-10,2026-04-15,2.5,scheduled,,,

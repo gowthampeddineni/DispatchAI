@@ -1,0 +1,2 @@
+alert_id,asset_id,part_id,parameter_name,rule_violated,severity,triggered_at,resolved_at,status,details
+591e768f-9a2a-48a5-af65-f9aa76b7fd12,WC-02,P-1099,Bore Diameter,Rule2_Run7_OneDirection,warning,2026-03-11 15:26:00.082174-04,,active,Seven consecutive measurements trending above nominal - likely mechanical drift from bearing wear

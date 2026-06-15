@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DispatchAI — Autonomous Production Scheduling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Saira:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef2f0;
+  --bg2:#ffffff;
+  --panel:#ffffff;
+  --panel2:#f6f8f7;
+  --line:#e0e6e2;
+  --line2:#cdd6d0;
+  --txt:#1b2620;
+  --muted:#5d6b63;
+  --dim:#97a49c;
+
+  --reply:#21b24c;   /* Reply brand green */
+  --reply-d:#1a9440;
+
+  --maint:#b45309;   /* Maintenance / CMMS  (amber)  */
+  --prod:#2563eb;    /* Production / MES-ERP (blue)   */
+  --qual:#0d9488;    /* Quality / QMMS (teal)         */
+  --supp:#7c3aed;    /* Supply Chain / ERP (violet)   */
+  --orch:#475569;    /* Orchestrator (slate)          */
+
+  --ok:#16a34a;
+  --warn:#d97706;
+  --bad:#dc2626;
+
+  --mono:'JetBrains Mono',monospace;
+  --cond:'Saira Condensed',sans-serif;
+  --body:'Saira',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(1100px 600px at 85% -10%, rgba(33,178,76,.08), transparent 60%),
+    radial-gradient(900px 500px at -5% 110%, rgba(33,178,76,.05), transparent 60%),
+    var(--bg);
+  color:var(--txt);
+  font-family:var(--body);
+  font-size:14px;
+  line-height:1.45;
+  overflow:hidden;
+}
+.scan{display:none}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-rows:auto 1fr;height:100vh}
+header{
+  display:flex;align-items:center;gap:18px;
+  padding:10px 18px;border-bottom:1px solid var(--reply-d);
+  background:var(--reply);
+}
+.brand{display:flex;align-items:baseline;gap:10px}
+.logo{font-family:var(--cond);font-weight:700;font-size:24px;letter-spacing:1px;color:#fff}
+.logo b{color:rgba(255,255,255,.78)}
+.tag{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.82);letter-spacing:2px;text-transform:uppercase}
+.spacer{flex:1}
+.pdca{display:flex;gap:4px;align-items:center}
+.pdca .step{font-family:var(--cond);font-weight:600;font-size:12px;letter-spacing:1px;
+  padding:4px 10px;border:1px solid rgba(255,255,255,.4);border-radius:3px;color:rgba(255,255,255,.72);text-transform:uppercase}
+.pdca .step.on{color:var(--reply);background:#fff;border-color:#fff}
+.pdca .step.ready{color:#fff;border-color:#fff;animation:pdcapulse 1.5s ease-in-out infinite;cursor:default}
+@keyframes pdcapulse{0%,100%{box-shadow:0 0 0 rgba(255,255,255,0)}50%{box-shadow:0 0 11px rgba(255,255,255,.8)}}
+.pdca .arr{color:rgba(255,255,255,.55);font-size:11px}
+
+.autonomy{display:flex;align-items:center;gap:8px}
+.autonomy label{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.85);letter-spacing:1px}
+.lvls{display:flex;border:1px solid rgba(255,255,255,.45);border-radius:4px;overflow:hidden}
+.lvls button{background:transparent;border:none;color:rgba(255,255,255,.85);font-family:var(--mono);
+  font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer;border-right:1px solid rgba(255,255,255,.28)}
+.lvls button:last-child{border-right:none}
+.lvls button.sel{background:#fff;color:var(--reply)}
+.lvls button:hover:not(.sel){background:rgba(255,255,255,.16);color:#fff}
+.lvlmode{font-family:var(--mono);font-size:10px;color:#fff;width:120px;text-align:right}
+
+/* ---------- main grid ---------- */
+.main{display:grid;grid-template-columns:248px 1fr 360px;gap:1px;background:var(--line);overflow:hidden}
+.col{background:var(--bg);overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.colhead{font-family:var(--cond);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+  font-size:12px;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.colhead .ct{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--dim)}
+.colbody{overflow:auto;padding:10px;flex:1;min-height:0}
+
+/* ---------- order queue ---------- */
+.order{border:1px solid var(--line);border-radius:5px;padding:9px 10px;margin-bottom:8px;
+  cursor:pointer;background:var(--panel2);transition:.15s;position:relative;overflow:hidden}
+.order:hover{border-color:var(--prod);transform:translateX(2px)}
+.order .oid{font-family:var(--mono);font-size:11px;color:var(--prod);font-weight:700}
+.order .opart{font-family:var(--cond);font-weight:600;font-size:15px;margin-top:1px}
+.order .ometa{display:flex;gap:10px;margin-top:5px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.order .tier{position:absolute;top:8px;right:8px;font-family:var(--mono);font-size:9px;
+  padding:1px 5px;border-radius:3px;letter-spacing:.5px}
+.tier.T1{background:rgba(255,90,90,.15);color:var(--bad)}
+.tier.T2{background:rgba(245,185,69,.15);color:var(--warn)}
+.tier.T3{background:rgba(118,129,143,.15);color:var(--muted)}
+.order.gone{opacity:.25;pointer-events:none}
+.order .due{color:var(--warn)}
+.qtools{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line);flex:0 0 auto}
+.qmode{display:flex;align-items:center;gap:5px}
+.qmodelbl{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;flex:0 0 auto}
+.qmodebtn{flex:1;font-family:var(--cond);font-weight:600;font-size:11px;text-transform:uppercase;
+  letter-spacing:.4px;padding:6px 4px;border-radius:4px;cursor:pointer;background:transparent;
+  border:1px solid var(--line2);color:var(--muted);transition:.15s}
+.qmodebtn.sel{background:var(--orch);color:var(--bg);border-color:var(--orch)}
+.qmodebtn:hover:not(.sel){color:var(--txt);border-color:var(--txt)}
+.qrow{display:flex;gap:6px}
+.qbtn{font-family:var(--cond);font-weight:600;letter-spacing:.5px;font-size:12px;
+  text-transform:uppercase;padding:7px 6px;border-radius:4px;cursor:pointer;transition:.15s;
+  background:transparent;border:1px solid var(--line2);color:var(--muted)}
+.qrow .qbtn{flex:1}
+.qbtn.primary{border-color:var(--reply);color:#fff;background:var(--reply);
+  font-size:14px;padding:10px;letter-spacing:1px}
+.qbtn.primary:hover{background:var(--reply-d);border-color:var(--reply-d);color:#fff;box-shadow:0 4px 14px rgba(33,178,76,.32)}
+.qbtn.primary:disabled{opacity:.55;cursor:default;box-shadow:none;background:var(--reply);color:#fff}
+.qbtn#addOrder:hover{border-color:var(--ok);color:var(--ok);background:rgba(22,163,74,.08)}
+.qbtn#resetDemo:hover{border-color:var(--supp);color:var(--supp);background:rgba(255,138,92,.08)}
+.hint{font-family:var(--mono);font-size:10px;color:var(--dim);text-align:center;padding:8px;line-height:1.6}
+
+/* ---------- center : gantt + check/act ---------- */
+.center{display:grid;grid-template-rows:1fr auto;min-height:0}
+.gwrap{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.gtophead{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line)}
+.gtophead h2{font-family:var(--cond);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;font-size:12px;color:var(--muted)}
+.legend{margin-left:auto;display:flex;gap:14px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.legend i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:middle}
+
+.gantt{flex:1;overflow:auto;position:relative;padding:0;display:flex;flex-direction:column}
+.gtimeline{display:grid;position:sticky;top:0;z-index:5;background:var(--bg2);
+  border-bottom:1px solid var(--line);height:26px;flex:0 0 26px}
+.gtimeline .tick{font-family:var(--mono);font-size:9px;color:var(--dim);
+  border-left:1px solid var(--line);padding:6px 0 0 4px}
+.gtimeline .tick.dayedge{border-left:2px solid var(--line2);color:var(--txt);
+  font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+/* rows share the leftover height so the board fills the panel instead of
+   leaving a big blank below four short rows; they still scroll if cramped */
+.grow{display:grid;grid-template-columns:104px 1fr;border-bottom:1px solid var(--line);
+  min-height:96px;flex:1 1 0}
+.glabel{padding:8px 10px;border-right:1px solid var(--line);background:var(--panel2);
+  display:flex;flex-direction:column;align-items:flex-start;overflow:hidden}
+.glabel .gn{font-family:var(--cond);font-weight:600;font-size:14px}
+.glabel .gt{font-family:var(--mono);font-size:9px;color:var(--muted)}
+.glabel .ghp{margin-top:5px;height:3px;border-radius:2px;background:var(--line);width:100%}
+.glabel .ghp i{display:block;height:100%;border-radius:2px}
+.runchip{margin-top:6px;align-self:flex-start;cursor:pointer;font-family:var(--mono);
+  font-size:9px;font-weight:700;letter-spacing:.5px;line-height:1.2;display:inline-block;
+  white-space:nowrap;user-select:none;padding:0;border:0;background:none}
+.runchip:hover{text-decoration:underline}
+.runchip.running{color:var(--ok)}
+.runchip.idle{color:var(--warn)}
+.runchip.down{color:var(--bad)}
+.gtrack{position:relative;background:
+  repeating-linear-gradient(90deg, transparent 0, transparent calc(var(--col) - 1px), var(--line) calc(var(--col) - 1px), var(--line) var(--col)),
+  repeating-linear-gradient(90deg, transparent 0, transparent calc(var(--dcol) - 1px), var(--line2) calc(var(--dcol) - 1px), var(--line2) var(--dcol))}
+
+.block{position:absolute;top:6px;bottom:6px;border-radius:4px;cursor:grab;
+  border:1px solid;padding:5px 7px;overflow:hidden;font-family:var(--mono);
+  user-select:none;transition:box-shadow .15s, filter .15s;backdrop-filter:blur(2px)}
+.block:active{cursor:grabbing}
+.block:hover{box-shadow:0 4px 14px rgba(27,38,32,.18);filter:brightness(1.02);z-index:9}
+.block .bid{font-size:10px;font-weight:700}
+.block .bpart{font-size:9px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.block .bstat{font-size:8px;letter-spacing:.5px;text-transform:uppercase;margin-top:2px;opacity:.85}
+.block.committed{background:rgba(22,163,74,.16);border-color:var(--ok);color:#0b6b34}
+.block.approved{background:rgba(37,99,235,.13);border-color:var(--prod);color:#1e40af}
+.block.escalated{background:rgba(217,119,6,.16);border-color:var(--warn);color:#92600a}
+.block.conflict{background:rgba(220,38,38,.14);border-color:var(--bad);color:#991b1b}
+.block.done{background:rgba(151,164,156,.16);border-color:var(--dim);color:var(--muted);cursor:default}
+.block.dragging{opacity:.95;box-shadow:0 8px 22px rgba(27,38,32,.28);z-index:50;transition:none}
+.block .bmenu{position:absolute;bottom:4px;right:5px;font-size:13px;line-height:.7;font-weight:700;
+  letter-spacing:1px;background:rgba(255,255,255,.8);border:1px solid currentColor;border-radius:3px;
+  padding:2px 7px;cursor:pointer;opacity:.8;transition:.15s}
+.block:hover .bmenu{opacity:1}
+.block .bmenu:hover{background:#fff;box-shadow:0 0 6px currentColor}
+
+.blockmenu{position:fixed;z-index:3000;background:var(--bg2);border:1px solid var(--line2);
+  border-radius:8px;box-shadow:0 16px 44px rgba(0,0,0,.28);padding:6px;min-width:208px;
+  display:flex;flex-direction:column;gap:2px}
+.blockmenu .bmtitle{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;
+  text-transform:uppercase;padding:3px 8px 6px;border-bottom:1px solid var(--line);margin-bottom:3px}
+.blockmenu button{font-family:var(--cond);font-weight:600;font-size:13px;text-align:left;
+  padding:7px 9px;border-radius:5px;border:1px solid transparent;background:transparent;
+  color:var(--txt);cursor:pointer;transition:.12s}
+.blockmenu button:hover{background:var(--panel2);border-color:var(--line)}
+.blockmenu button.go:hover{border-color:var(--ok);color:var(--ok)}
+.blockmenu button.alt:hover{border-color:var(--warn);color:var(--warn)}
+.blockmenu button.no:hover{border-color:var(--bad);color:var(--bad)}
+
+/* check / act strip */
+.loopstrip{border-top:1px solid var(--line);background:var(--panel2);padding:8px 14px;
+  display:flex;gap:18px;align-items:center;min-height:74px}
+.fam{flex:0 0 300px}
+.fam .ft{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:5px;display:flex}
+.fam .ft b{margin-left:auto;color:var(--txt)}
+.fammeter{height:30px;position:relative;border:1px solid var(--line);border-radius:4px;
+  background:linear-gradient(90deg, rgba(22,163,74,.22) 0 50%, rgba(217,119,6,.22) 50% 78%, rgba(220,38,38,.22) 78% 100%);overflow:hidden}
+.fammeter .band{position:absolute;top:0;bottom:0;border-right:1px dashed var(--line2)}
+.fammeter .needle{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--txt);
+  box-shadow:0 0 6px rgba(27,38,32,.45);transition:left .6s cubic-bezier(.2,.8,.2,1)}
+.fammeter .fl{position:absolute;bottom:1px;font-family:var(--mono);font-size:8px;color:var(--muted)}
+.loopcopy{flex:1;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.6}
+.loopcopy b{color:var(--reply-d)}
+.cnt{font-family:var(--cond);font-weight:700;font-size:26px;color:var(--reply-d);line-height:1}
+.cntlbl{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+
+/* ---------- right : negotiation feed ---------- */
+.feedhead{display:flex;align-items:center;gap:8px}
+.feedhead .pill{margin-left:auto;font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:10px;
+  border:1px solid var(--line2);color:var(--muted)}
+.feed{padding:10px;overflow:auto;flex:1;min-height:0}
+.idle{color:var(--dim);font-family:var(--mono);font-size:11px;text-align:center;padding:40px 20px;line-height:1.8}
+.idle b{color:var(--muted)}
+
+.proposal{border:1px solid var(--line2);border-radius:6px;padding:10px 12px;margin-bottom:10px;background:var(--panel)}
+.proposal .ptitle{font-family:var(--cond);font-weight:600;font-size:15px}
+.proposal .psub{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+
+.msg{display:flex;gap:9px;margin-bottom:9px;opacity:0;transform:translateY(6px);
+  animation:rise .35s forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.avatar{flex:0 0 30px;height:30px;border-radius:6px;display:grid;place-items:center;
+  font-family:var(--cond);font-weight:700;font-size:12px;border:1px solid}
+.bubble{flex:1;border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:var(--panel2)}
+.bubble .who{font-family:var(--mono);font-size:10px;letter-spacing:.5px;display:flex;align-items:center;gap:7px}
+.bubble .who .src{color:var(--dim);font-size:9px}
+.bubble .what{font-size:12.5px;margin-top:3px;color:var(--txt)}
+.bubble .tool{font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:4px;
+  border-top:1px dashed var(--line);padding-top:4px}
+.pos{margin-left:auto;font-family:var(--mono);font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;letter-spacing:.5px}
+.pos.ACCEPT{background:rgba(74,222,128,.16);color:var(--ok)}
+.pos.CONCEDE{background:rgba(245,185,69,.16);color:var(--warn)}
+.pos.OBJECT{background:rgba(255,90,90,.16);color:var(--bad)}
+.pos.VETO{background:var(--bad);color:#fff}
+
+.m-maint .avatar{color:var(--maint);border-color:var(--maint);background:rgba(180,83,9,.10)}
+.m-prod .avatar{color:var(--prod);border-color:var(--prod);background:rgba(37,99,235,.10)}
+.m-qual .avatar{color:var(--qual);border-color:var(--qual);background:rgba(13,148,136,.10)}
+.m-supp .avatar{color:var(--supp);border-color:var(--supp);background:rgba(124,58,237,.10)}
+.m-orch .avatar{color:var(--orch);border-color:var(--orch);background:rgba(71,85,105,.10)}
+.m-orch .bubble{border-color:var(--line2);background:var(--panel2)}
+
+.verdict{border-radius:6px;padding:11px 13px;margin:6px 0 12px;border:1px solid}
+.verdict .vh{font-family:var(--cond);font-weight:700;font-size:20px;letter-spacing:1px;display:flex;align-items:center;gap:9px}
+.verdict .vsub{font-family:var(--mono);font-size:10px;margin-top:4px;line-height:1.6}
+.verdict.COMMIT{border-color:var(--ok);background:rgba(74,222,128,.07)}
+.verdict.COMMIT .vh{color:var(--ok)}
+.verdict.ESCALATE{border-color:var(--warn);background:rgba(245,185,69,.07)}
+.verdict.ESCALATE .vh{color:var(--warn)}
+.verdict.REJECT{border-color:var(--bad);background:rgba(255,90,90,.07)}
+.verdict.REJECT .vh{color:var(--bad)}
+.verdict .acts{display:flex;gap:8px;margin-top:10px}
+.fixhint{font-family:var(--body);font-size:11.5px;color:var(--txt);background:rgba(33,178,76,.06);
+  border:1px dashed var(--line2);border-radius:5px;padding:7px 9px;margin-top:9px;line-height:1.5}
+.fixhint b{color:var(--reply-d)}
+.fixhint.mini{font-size:10.5px;padding:5px 7px;margin-top:6px;background:rgba(33,178,76,.05)}
+.btn{font-family:var(--cond);font-weight:600;letter-spacing:.5px;font-size:13px;padding:7px 14px;
+  border-radius:4px;border:1px solid;cursor:pointer;background:transparent;transition:.15s;text-transform:uppercase}
+.btn.go{border-color:var(--ok);color:var(--ok)}
+.btn.go:hover{background:var(--ok);color:var(--bg)}
+.btn.alt{border-color:var(--prod);color:var(--prod)}
+.btn.alt:hover{background:var(--prod);color:var(--bg)}
+.btn.no{border-color:var(--dim);color:var(--muted)}
+.btn.no:hover{border-color:var(--bad);color:var(--bad)}
+
+.scorecards{margin-top:6px}
+.sc{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;
+  border:1px solid var(--line);border-radius:4px;padding:6px 8px;margin-bottom:5px}
+.sc .dot{width:8px;height:8px;border-radius:50%}
+.sc .scn{color:var(--txt);flex:0 0 76px}
+.sc .scr{color:var(--muted);flex:1}
+.sc .scv{font-weight:700}
+.sc.hit .scv{color:var(--ok)}
+.sc.miss .scv{color:var(--bad)}
+
+/* consensus log + escalation tray live in left bottom split */
+.split{--eh:160px;--bh:160px;--lh:120px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.sect{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#sectQueue{flex:1 1 0;min-height:180px}            /* queue is the big, always-visible pane */
+#sectEsc{flex:0 0 var(--eh)}
+#sectBlk{flex:0 0 var(--bh)}
+#sectLog{flex:0 0 var(--lh)}
+/* an empty tray shrinks to just its header until something lands in it */
+#sectEsc.tcollapsed,#sectBlk.tcollapsed,#sectLog.tcollapsed{flex:0 0 auto}
+.sect.tcollapsed .colbody{display:none}
+.tray{border-top:1px solid var(--line)}
+.resizer{flex:0 0 7px;cursor:row-resize;background:var(--panel2);position:relative;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);touch-action:none}
+.resizer::after{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:28px;height:2px;border-radius:2px;background:var(--line2);transition:.12s}
+.resizer:hover{background:rgba(33,178,76,.12)}
+.resizer:hover::after,.resizer.drag::after{background:var(--reply);width:40px}
+.resizer.drag{background:rgba(33,178,76,.18)}
+.blk{border:1px solid var(--bad);border-radius:5px;padding:8px 9px;margin-bottom:7px;background:rgba(255,90,90,.05)}
+.blk .bkid{font-family:var(--mono);font-size:10px;color:var(--bad);font-weight:700}
+.blk .bkr{font-family:var(--cond);font-size:13px;margin:2px 0 6px;color:var(--txt);line-height:1.35}
+.blk .ea{display:flex;gap:6px}
+.blk .btn{font-size:11px;padding:4px 9px}
+.esc{border:1px solid var(--warn);border-radius:5px;padding:8px 9px;margin-bottom:7px;background:rgba(245,185,69,.05);cursor:pointer;transition:.12s}
+.esc:hover{background:rgba(245,185,69,.10)}
+.esc .eid{font-family:var(--mono);font-size:10px;color:var(--warn);font-weight:700;display:flex;align-items:center}
+.esc .ec{font-family:var(--cond);font-size:13px;margin:2px 0 6px}
+.esc .ea{display:flex;gap:6px}
+.esc .btn{font-size:11px;padding:4px 9px}
+.blk{cursor:pointer;transition:.12s}
+.blk:hover{background:rgba(255,90,90,.10)}
+.blk .bkid{display:flex;align-items:center}
+.viewneg{margin-left:auto;font-family:var(--mono);font-size:8.5px;font-weight:700;color:var(--prod);
+  border:1px solid var(--line2);border-radius:3px;padding:1px 5px;letter-spacing:.3px}
+.logitem{font-family:var(--mono);font-size:10px;border-left:2px solid var(--line2);padding:3px 0 3px 8px;margin-bottom:5px;color:var(--muted)}
+.logitem b{color:var(--txt)}
+.logitem .lt{color:var(--dim);font-size:9px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--panel);border:1px solid var(--line2);border-radius:6px;padding:10px 16px;
+  font-family:var(--mono);font-size:12px;opacity:0;transition:.3s;z-index:1000;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.modal{position:fixed;inset:0;background:rgba(20,30,25,.5);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;z-index:2000}
+.modal.show{display:flex;animation:fadein .18s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.modalbox{width:min(560px,92vw);max-height:86vh;overflow:auto;background:var(--bg2);
+  border:1px solid var(--line2);border-radius:10px;padding:16px 18px 18px;position:relative;
+  box-shadow:0 24px 70px rgba(0,0,0,.7)}
+.modalhd{font-family:var(--cond);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+  font-size:12px;color:var(--muted);margin-bottom:12px}
+.modalx{position:absolute;top:11px;right:13px;background:transparent;border:1px solid var(--line2);
+  color:var(--muted);border-radius:5px;width:26px;height:26px;cursor:pointer;font-family:var(--mono);font-size:12px}
+.modalx:hover{color:var(--bad);border-color:var(--bad)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<div class="scan"></div>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="logo">Dispatch<b>AI</b></div>
+      <div class="tag">Optical Fiber Plant · Draw › Spool › Test › Split › Respool · Plan→Do→Check→Act</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="pdca" id="pdca">
+      <span class="step" data-p="plan">Plan</span><span class="arr">›</span>
+      <span class="step" data-p="do">Do</span><span class="arr">›</span>
+      <span class="step" data-p="check">Check</span><span class="arr">›</span>
+      <span class="step" data-p="act">Act</span>
+    </div>
+    <div class="autonomy">
+      <label>Trust&nbsp;Ramp</label>
+      <div class="lvls" id="lvls">
+        <button data-l="1">L1</button>
+        <button data-l="2">L2</button>
+        <button data-l="3" class="sel">L3</button>
+        <button data-l="4">L4</button>
+        <button data-l="5">L5</button>
+      </div>
+      <div class="lvlmode" id="lvlmode">Approve · 1-click</div>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- LEFT -->
+    <div class="col split" id="leftSplit">
+      <div class="sect" id="sectQueue">
+        <div class="colhead">Order Queue <span class="ct" id="qct"></span></div>
+        <div class="qtools">
+          <div class="qmode">
+            <span class="qmodelbl">START</span>
+            <button class="qmodebtn sel" data-mode="scratch">From scratch</button>
+            <button class="qmodebtn" data-mode="existing">Around plan</button>
+          </div>
+          <button class="qbtn primary" id="autoBtn">▶ Auto-Schedule All</button>
+          <div class="qrow">
+            <button class="qbtn" id="addOrder">+ Add Order</button>
+            <button class="qbtn" id="resetDemo">↺ Reset Demo</button>
+          </div>
+        </div>
+        <div class="colbody" id="queue"></div>
+      </div>
+      <div class="resizer" data-var="--eh" data-sect="#sectEsc" title="Drag to resize"></div>
+      <div class="sect tray" id="sectEsc">
+        <div class="colhead">Escalations <span class="ct" id="escct"></span></div>
+        <div class="colbody" id="esctray"><div class="hint">No escalations.<br>Conflicts the agents can't resolve land here for your call.</div></div>
+      </div>
+      <div class="resizer" data-var="--bh" data-sect="#sectBlk" title="Drag to resize"></div>
+      <div class="sect tray" id="sectBlk">
+        <div class="colhead">Blocked Orders <span class="ct" id="blkct"></span></div>
+        <div class="colbody" id="blockedtray"><div class="hint">No blocked orders.<br>Hard-veto orders (no material, locked asset, reg hold, Cpk floor) park here until the condition clears.</div></div>
+      </div>
+      <div class="resizer" data-var="--lh" data-sect="#sectLog" title="Drag to resize"></div>
+      <div class="sect tray" id="sectLog">
+        <div class="colhead">Consensus Log <span class="ct" id="logct"></span></div>
+        <div class="colbody" id="conlog"><div class="hint">No decisions yet.<br>Every commit, escalation, override, and scorecard lands here as an auditable record.</div></div>
+      </div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="col center">
+      <div class="gwrap">
+        <div class="gtophead">
+          <h2>Production Schedule · Live</h2>
+          <div class="legend">
+            <span><i style="background:var(--ok)"></i>Committed</span>
+            <span><i style="background:var(--prod)"></i>Approved</span>
+            <span><i style="background:var(--warn)"></i>Escalated</span>
+            <span><i style="background:var(--bad)"></i>Conflict</span>
+            <span style="color:var(--dim)">drag a block to reschedule →</span>
+          </div>
+        </div>
+        <div class="gantt" id="gantt"></div>
+      </div>
+      <div class="loopstrip">
+        <div class="fam">
+          <div class="ft">Proposal Familiarity · learned "normal" <b id="famct">0 runs</b></div>
+          <div class="fammeter" id="fammeter">
+            <div class="band" style="left:50%"></div>
+            <div class="band" style="left:78%"></div>
+            <div class="needle" id="needle" style="left:18%"></div>
+            <div class="fl" style="left:4px">familiar</div>
+            <div class="fl" style="left:54%">marginal</div>
+            <div class="fl" style="right:4px">outlier</div>
+          </div>
+        </div>
+        <div class="loopcopy" id="loopcopy">
+          <b>CHECK / ACT.</b> Mark a committed block <b>✓done</b> to make the agents score their own call against the floor.
+          Every scorecard sharpens the familiarity distribution. Year-two beats year-one with zero extra build.
+        </div>
+        <div style="text-align:center"><div class="cnt" id="adher">—</div><div class="cntlbl">Adherence</div></div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="col">
+      <div class="colhead feedhead">Agent Negotiation
+        <span class="pill" id="feedpill">idle</span>
+      </div>
+      <div class="feed" id="feed">
+        <div class="idle">
+          <b>Pick an order from the queue.</b><br><br>
+          Four specialist agents each query their own source system and form a position
+          <span style="color:var(--ok)">independently</span> to prevent anchoring.<br><br>
+          The Orchestrator names every conflict, runs the vote, checks the familiarity score,
+          then commits, escalates, or rejects.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal" id="negModal">
+  <div class="modalbox">
+    <button class="modalx" id="negClose">✕</button>
+    <div class="modalhd">Recorded Agent Negotiation</div>
+    <div id="negBody"></div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   DispatchAI demo — deterministic multi-agent scheduler.
+   No network, no LLM. Agent reasoning is derived from simulated source
+   data so the negotiation changes with every order and every reschedule.
+   ===================================================================== */
+
+// ---------- simulated source systems ----------
+// Each asset carries CMMS (maintenance) + MES (production) signals.
+// ops = operations the line can run (draw / test / split / respool).
+// rate = km/h sustained throughput · capH = max continuous-run window (h)
+// before mandatory PM/changeover. Draw towers are slow & run for hours/days.
+const ASSETS = [
+  {id:'DRAW-01', name:'Draw Tower 1', type:'25m tower · dual-coat', ops:['draw'],
+    health:89, vib:'stable', pmDays:11, openWO:0, lockout:false, run:'running',
+    oee:0.84, rate:7, capH:48},
+  {id:'DRAW-02', name:'Draw Tower 2', type:'30m tower · spec fiber', ops:['draw'],
+    health:78, vib:'stable', pmDays:14, openWO:1, lockout:false, run:'running',
+    oee:0.76, rate:9, capH:48},
+  {id:'SPOOL-05', name:'Primary Spooling', type:'precision winder · tension ctrl', ops:['spool'],
+    health:83, vib:'stable', pmDays:22, openWO:0, lockout:false, run:'running',
+    oee:0.88, rate:16, capH:28},
+  {id:'TEST-03', name:'Proof & Optical Test', type:'tensile screen · OTDR', ops:['test'],
+    health:74, vib:'stable', pmDays:19, openWO:1, lockout:false, run:'running',
+    oee:0.81, rate:18, capH:26},
+  {id:'RESPOOL-04', name:'Split & Respool', type:'rewind · drum cut', ops:['split','respool'],
+    health:71, vib:'stable', pmDays:16, openWO:1, lockout:false, run:'running',
+    oee:0.74, rate:14, capH:30},
+];
+
+// QMMS + ERP signals live on the fiber type. cpk = capability on the
+// critical optical spec (attenuation + cladding geometry). qty is in km.
+const PARTS = {
+  'SMF-G652D':{family:'SMF · G.652.D',  cpk:1.46, spc:0, ncr:0, scrap:0.5, matAvail:9999, lead:1, regHold:false},
+  'BIF-G657A2':{family:'BIF · G.657.A2', cpk:1.30, spc:0, ncr:0, scrap:0.9, matAvail:9999, lead:2, regHold:false},
+  'MMF-OM4':{family:'MMF · OM4',         cpk:1.10, spc:1, ncr:0, scrap:2.0, matAvail:9999, lead:2, regHold:false},
+  'ULL-G654E':{family:'ULL · G.654.E',   cpk:1.18, spc:0, ncr:0, scrap:1.1, matAvail:140,  lead:4, regHold:false},
+  'PMF-SPEC':{family:'PM fiber · spec',   cpk:0.92, spc:2, ncr:1, scrap:5.4, matAvail:9999, lead:3, regHold:false},
+  'DSF-SPEC':{family:'DSF · dispersion-shifted', cpk:1.25, spc:0, ncr:0, scrap:1.2, matAvail:9999, lead:3, regHold:true},
+};
+
+// ---------- incoming order queue ---------- (generated randomly at start)
+let ORDERS = [];
+let woCounter = 4471;
+const CUSTS = [['Tier-1 Cable OEM','T1'],['Hyperscale DC','T2'],['Submarine Networks','T1'],
+  ['Telco North','T1'],['Internal Stock','T3'],['Regional ISP','T2'],['Defense Optics','T3'],
+  ['Metro Fiber Co','T2'],['Backbone Telecom','T1']];
+
+// pacing of the negotiation (ms) — bump these to slow the demo further
+const INTRO_MS = 600, STEP_MS = 1350, FINISH_MS = 1000, CARD_MS = 750;
+let IDLE_HTML = '';
+let SCHED = [];   // {order, partKey, assetId, start, dur, status, run:{...}}
+let LOG = [];
+let famRuns = 0;            // completed scorecards
+let famSpread = 1.0;        // shrinks as it learns -> tighter "normal"
+let adherHits = 0, adherTotal = 0;
+let level = 3;
+
+// gantt window — 5-day, 24/7 continuous horizon, measured in hours
+const HORIZON_DAYS = 5;
+const G_START = 0, G_END = HORIZON_DAYS*24, G_HOURS = G_END - G_START;   // 0 .. 120h
+// plant clock anchored to local midnight today, so blocks read as real days
+const PLANT_START = (()=>{ const d=new Date(); d.setHours(0,0,0,0); return d; })();
+function dateAt(h){ return new Date(PLANT_START.getTime() + h*3600000); }
+function fmtT(h){ const d=dateAt(h);
+  return d.toLocaleDateString(undefined,{weekday:'short'})+' '
+    + String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+
+const $ = s => document.querySelector(s);
+const el = (t,c)=>{const e=document.createElement(t); if(c)e.className=c; return e;};
+const CRIT_CPK = 1.0;
+
+const AGENTS = {
+  maint:{n:'Maintenance', src:'CMMS', cls:'m-maint', av:'MT'},
+  prod :{n:'Production',  src:'MES / ERP', cls:'m-prod', av:'PR'},
+  qual :{n:'Quality',     src:'QMMS', cls:'m-qual', av:'QA'},
+  supp :{n:'Supply Chain',src:'ERP',  cls:'m-supp', av:'SC'},
+};
+const LEVELMODE = {1:'Shadow · observe',2:'Recommend · advise',3:'Approve · 1-click',4:'Auto (bounded)',5:'Auto (full)'};
+
+// ======================= AGENT ASSESSMENTS =======================
+// Each returns {pos, sev, why, tool, veto}
+// pos: ACCEPT | CONCEDE | OBJECT ; veto adds VETO
+
+function assessMaint(a){
+  if(a.lockout) return {pos:'OBJECT',veto:true,sev:3,
+    why:`${a.name} is safety-tagged / locked out (spindle drive fault). Non-discretionary stop.`,
+    tool:`get_asset_health("${a.id}") → LOCKOUT=true`};
+  if(a.health<45 || (a.vib==='rising'&&a.pmDays<0&&a.openWO>=2))
+    return {pos:'OBJECT',sev:2,
+      why:`Condition ${a.health}%, drive trend ${a.vib}, PM ${a.pmDays<0?Math.abs(a.pmDays)+'d overdue':'ok'}. Failure risk too high to load.`,
+      tool:`get_vibration_history("${a.id}",30d) · get_pm_schedule`};
+  if(a.health<65 || a.pmDays<0 || a.vib==='rising')
+    return {pos:'CONCEDE',sev:1,
+      why:`Condition ${a.health}%, ${a.pmDays<0?'PM '+Math.abs(a.pmDays)+'d overdue':'PM due soon'}. Will run, flagging for monitoring.`,
+      tool:`get_asset_health("${a.id}") · ${a.openWO} open WO`};
+  return {pos:'ACCEPT',sev:0,
+    why:`Furnace/tractor condition ${a.health}%, draw tension stable, PM in ${a.pmDays}d. Line fit to run.`,
+    tool:`get_asset_health("${a.id}") → ${a.health}`};
+}
+
+function assessProd(a,o,startConflict){
+  if(a.run==='down') return {pos:'OBJECT',veto:true,sev:3,
+    why:`${a.name} is DOWN per live status. The line isn't running — nothing can be dispatched to it.`,
+    tool:`get_line_status("${a.id}") → DOWN (live)`};
+  if(!a.ops.includes(o.op)) return {pos:'OBJECT',sev:2,
+    why:`${a.name} runs ${a.ops.join('/')} operations — not a ${o.op.toUpperCase()} run. Wrong equipment for this step.`,
+    tool:`get_queue_state("${a.id}") → op mismatch`};
+  const need = o.qty/a.rate;
+  if(startConflict) return {pos:'OBJECT',sev:2,
+    why:`Slot collides with another run on ${a.name}. Line double-booked.`,
+    tool:`get_queue_state("${a.id}") → overlap`};
+  if(need > a.capH) return {pos:'OBJECT',sev:2,
+    why:`${o.qty} km at ${a.rate} km/h needs ${need.toFixed(1)}h — exceeds the ${a.capH}h continuous-run window before mandatory PM. Won't fit in one campaign.`,
+    tool:`get_run_window("${a.id}") → ${a.capH}h`};
+  if(a.oee<0.6 || need>a.capH*0.75) return {pos:'CONCEDE',sev:1,
+    why:`OEE ${(a.oee*100|0)}%, ${need.toFixed(1)}h run consumes most of the ${a.capH}h campaign window. Tight but runnable.`,
+    tool:`get_oee_history("${a.id}") → ${(a.oee*100|0)}%`};
+  return {pos:'ACCEPT',sev:0,
+    why:`Line ${a.run.toUpperCase()}, OEE ${(a.oee*100|0)}%, ${o.qty} km = ${need.toFixed(1)}h sits inside the ${a.capH}h run window.`,
+    tool:`get_line_status("${a.id}") → ${a.run.toUpperCase()} · get_queue_state`};
+}
+
+function assessQual(p){
+  if(p.regHold) return {pos:'OBJECT',veto:true,sev:3,
+    why:`Customer qualification hold on ${p.family} pending OTDR sign-off. Cannot release to draw.`,
+    tool:`get_open_ncrs("${p.family}") → QUAL_HOLD`};
+  if(p.cpk<CRIT_CPK) return {pos:'OBJECT',veto:true,sev:3,
+    why:`Attenuation/geometry Cpk ${p.cpk} below capable floor ${CRIT_CPK}. Process can't hold spec — producing scrap km by definition.`,
+    tool:`get_cpk_trend("${p.family}") → ${p.cpk}`};
+  if(p.cpk<1.15) return {pos:'OBJECT',sev:2,
+    why:`Cpk ${p.cpk} marginal${p.spc?`, ${p.spc} SPC excursion(s) on cladding geometry`:''}. High attenuation-failure risk — recommend a process review before drawing.`,
+    tool:`get_active_spc_alerts → ${p.spc} · get_scrap_history → ${p.scrap}%`};
+  if(p.cpk<1.33 || p.spc>0 || p.ncr>0) return {pos:'CONCEDE',sev:1,
+    why:`Cpk ${p.cpk}${p.spc?`, ${p.spc} SPC alert(s)`:''}${p.ncr?`, ${p.ncr} open NCR`:''}. Will run under elevated screening.`,
+    tool:`get_active_spc_alerts → ${p.spc} · get_scrap_history → ${p.scrap}%`};
+  return {pos:'ACCEPT',sev:0,
+    why:`Cpk ${p.cpk}, no SPC alerts, scrap ${p.scrap}%. Attenuation + geometry in control.`,
+    tool:`get_cpk_trend("${p.family}") → ${p.cpk}`};
+}
+
+function assessSupp(p,o,startHr,dur){
+  const matName = o.op==='draw' ? 'qualified preform' : 'master spool stock';
+  if(p.matAvail < o.qty) return {pos:'OBJECT',veto:true,sev:3,
+    why:`Only ${p.matAvail} km of ${matName} for a ${o.qty} km run. Can't draw what isn't there.`,
+    tool:`get_material_availability("${p.family}") → ${p.matAvail} km`};
+  if(p.lead > o.due) return {pos:'OBJECT',sev:2,
+    why:`${matName} lead time ${p.lead}d but commitment due in ${o.due}d. Can't make the date.`,
+    tool:`get_supplier_lead_time → ${p.lead}d · get_delivery_commitments`};
+  if(p.lead>=o.due-1 || (o.tier==='T1' && p.lead>=o.due-2)) return {pos:'CONCEDE',sev:1,
+    why:`${o.cust} (${o.tier}) ${matName} buffer is tight against the ${o.due}d date. Acceptable with priority.`,
+    tool:`get_customer_tier("${o.cust}") → ${o.tier}`};
+  return {pos:'ACCEPT',sev:0,
+    why:`${matName} on hand, lead ${p.lead}d clears the ${o.due}d commitment for ${o.cust}.`,
+    tool:`get_delivery_commitments("${o.id}") → on time`};
+}
+
+// ======================= ORCHESTRATOR =======================
+function orchestrate(order, partKey, assetId, startHr){
+  const a = ASSETS.find(x=>x.id===assetId);
+  const p = PARTS[partKey];
+  const dur = round15(order.qty/a.rate + 0.5);   // + changeover
+  const overlap = hasOverlap(assetId, startHr, dur, order.id);
+
+  const A = {
+    maint: assessMaint(a),
+    prod : assessProd(a, order, overlap),
+    qual : assessQual(p),
+    supp : assessSupp(p, order, startHr, dur),
+  };
+
+  const list = Object.entries(A);
+  const vetoes = list.filter(([,r])=>r.veto);
+  const acc = list.filter(([,r])=>r.pos==='ACCEPT').length;
+  const con = list.filter(([,r])=>r.pos==='CONCEDE').length;
+  const obj = list.filter(([,r])=>r.pos==='OBJECT').length;
+
+  // familiarity score (distance from learned normal)
+  const fam = familiarity(order, a, startHr, dur);
+
+  let outcome, confidence, note;
+  if(vetoes.length){
+    outcome='REJECT';
+    note=`Hard veto: ${vetoes.map(([k])=>AGENTS[k].n).join(', ')}. Blocking conditions documented.`;
+    confidence=0;
+  } else if(obj>=3){
+    outcome='REJECT'; note=`Majority objection (${obj}/4). Constraints violated.`; confidence=0;
+  } else if(obj>=1){
+    outcome='ESCALATE'; note=`${obj} objection, not dominant. Planner decision required.`; confidence=0.4;
+  } else if(acc===0){
+    outcome='ESCALATE'; note=`Four concessions, zero accepts. No agent will stand behind it.`; confidence=0.35;
+  } else {
+    outcome='COMMIT';
+    note=`${acc} accept · ${con} concede · 0 object. Consensus reached.`;
+    confidence=0.6 + 0.1*acc;
+  }
+
+  // familiarity safety net — outlier overrides a commit
+  if(outcome==='COMMIT' && fam.zone==='outlier'){
+    outcome='ESCALATE';
+    note=`Agents agreed, but this proposal is an OUTLIER vs every successful schedule on record. Consensus without precedent is not enough to auto-commit.`;
+    confidence=0.45;
+  } else if(outcome==='COMMIT' && fam.zone==='marginal'){
+    note += ' Familiarity marginal — flagged for elevated monitoring.';
+    confidence-=0.1;
+  }
+
+  return {order, partKey, assetId, startHr, dur, A, acc, con, obj,
+          outcome, note, confidence:Math.max(0,Math.min(.95,confidence)), fam};
+}
+
+// learned distribution: queue/util/cpk/material-buffer.
+const NORM = {util:0.35, cpk:1.4, buffer:5, health:80};
+function familiarity(o,a,startHr,dur){
+  const p = PARTS[o.part || o.partKey];
+  const util = dur/a.capH;
+  const buffer = o.due - p.lead;
+  const z = (
+    Math.abs(util-NORM.util)/(0.20*famSpread) +
+    Math.abs(p.cpk-NORM.cpk)/(0.22*famSpread) +
+    Math.abs(buffer-NORM.buffer)/(3.0*famSpread) +
+    Math.abs(a.health-NORM.health)/(22*famSpread)
+  )/4;
+  let zone = z<1 ? 'familiar' : z<2 ? 'marginal' : 'outlier';
+  return {z, zone, pct: Math.min(100, z*40)};
+}
+
+// ======================= GANTT HELPERS =======================
+function round15(h){ return Math.round(h*4)/4; }
+function hasOverlap(assetId, start, dur, ignoreId){
+  return SCHED.some(s => s.assetId===assetId && s.order.id!==ignoreId && s.status!=='done' &&
+    start < s.start+s.dur && start+dur > s.start);
+}
+function firstFreeSlot(assetId, dur){
+  let t = G_START;
+  const blocks = SCHED.filter(s=>s.assetId===assetId && s.status!=='done').sort((x,y)=>x.start-y.start);
+  for(const b of blocks){ if(t+dur<=b.start) return t; t=Math.max(t,b.start+b.dur); }
+  return Math.min(t, G_END-dur);
+}
+
+// ======================= RENDERING =======================
+function renderQueue(){
+  const q = $('#queue'); q.innerHTML='';
+  $('#qct').textContent = ORDERS.length+' pending';
+  if(!ORDERS.length){ q.innerHTML='<div class="hint">Queue clear.<br>All orders processed.</div>'; }
+  ORDERS.forEach(o=>{
+    const p = PARTS[o.part];
+    const d = el('div','order');
+    d.innerHTML = `<span class="tier ${o.tier}">${o.tier}</span>
+      <div class="oid">${o.id} · ${o.op.toUpperCase()}</div>
+      <div class="opart">${p.family}</div>
+      <div class="ometa"><span>${o.qty} km</span><span class="due">due ${o.due}d</span><span>${o.cust}</span></div>`;
+    d.onclick = ()=>scheduleOrder(o);
+    q.appendChild(d);
+  });
+}
+
+function renderGantt(){
+  const g = $('#gantt'); g.innerHTML='';
+  // timeline — one column per 6h, day-name on each midnight boundary
+  const tl = el('div','gtimeline');
+  const cols = G_HOURS/6;
+  tl.style.gridTemplateColumns = `104px repeat(${cols}, 1fr)`;
+  tl.appendChild(el('div'));
+  for(let h=G_START; h<G_END; h+=6){
+    const t=el('div','tick'); const d=dateAt(h); const hod=((h%24)+24)%24;
+    if(hod===0){ t.classList.add('dayedge'); t.textContent = d.toLocaleDateString(undefined,{weekday:'short'}); }
+    else t.textContent = String(hod).padStart(2,'0')+':00';
+    tl.appendChild(t);
+  }
+  g.appendChild(tl);
+
+  ASSETS.forEach(a=>{
+    const row = el('div','grow'); row.dataset.asset=a.id;
+    const lbl = el('div','glabel');
+    const hc = a.health>=65?'var(--ok)':a.health>=45?'var(--warn)':'var(--bad)';
+    lbl.innerHTML = `<div class="gn">${a.name}</div><div class="gt">${a.type}</div>
+      <div class="ghp"><i style="width:${a.health}%;background:${hc}"></i></div>`;
+    if(a.lockout){ lbl.querySelector('.gt').innerHTML += ' · <span style="color:var(--bad)">LOCKED</span>'; }
+    // live machine-status (click to cycle running → idle → down)
+    const chip = el('span','runchip '+a.run);
+    chip.textContent = '● '+a.run.toUpperCase();
+    chip.title = 'Click to change line status (running / idle / down)';
+    chip.onclick = (e)=>{ e.stopPropagation(); cycleRun(a.id); };
+    lbl.appendChild(chip);
+    const track = el('div','gtrack');
+    track.style.setProperty('--col', (100/(G_HOURS/6))+'%');     // 6-hour gridline
+    track.style.setProperty('--dcol', (100/HORIZON_DAYS)+'%');   // day boundary
+    track.dataset.asset=a.id;
+    row.appendChild(lbl); row.appendChild(track);
+    g.appendChild(row);
+  });
+
+  SCHED.forEach(drawBlock);
+  refreshLoopCue();
+}
+
+// signal that the CHECK/ACT half of the loop is reachable: pulse CHECK
+// whenever a committed/approved block is sitting on the board, unfinished.
+function refreshLoopCue(){
+  const ready = SCHED.some(s=>s.status!=='done' && s.status!=='conflict');
+  const step = document.querySelector('#pdca .step[data-p="check"]');
+  if(step) step.classList.toggle('ready', ready && !step.classList.contains('on'));
+}
+
+// ---------- machine-status simulator (running → idle → down) ----------
+function cycleRun(assetId){
+  if(busy) return;
+  const a = ASSETS.find(x=>x.id===assetId);
+  a.run = ({running:'idle', idle:'down', down:'running'})[a.run] || 'running';
+  reconcileLine(a);
+  renderGantt();
+  logIt(`LINE STATUS ${a.id} → ${a.run.toUpperCase()}`, null);
+  toast(`${a.name} → ${a.run.toUpperCase()}${a.run==='down'?' · scheduled runs re-checked':''}`);
+}
+// when a line changes state, re-check every scheduled run on it against the new status
+function reconcileLine(a){
+  SCHED.filter(s=>s.assetId===a.id && s.status!=='done').forEach(s=>{
+    if(a.run==='down'){ s.status='conflict'; return; }
+    const r = orchestrate({...s.order}, s.partKey, a.id, s.start);
+    s.result = r;
+    if(r.outcome==='REJECT' || r.obj>=1 || hasOverlap(a.id,s.start,r.dur,s.order.id)) s.status='conflict';
+    else if(r.outcome==='ESCALATE') s.status='escalated';
+    else s.status = level>=4 ? 'committed' : 'approved';
+  });
+}
+
+function drawBlock(s){
+  const track = document.querySelector(`.gtrack[data-asset="${s.assetId}"]`);
+  if(!track) return;
+  const b = el('div','block '+s.status);
+  b.dataset.id = s.order.id;
+  const leftPct = (s.start-G_START)/G_HOURS*100;
+  const wPct = s.dur/G_HOURS*100;
+  b.style.left = leftPct+'%'; b.style.width = wPct+'%';
+  b.innerHTML = `<div class="bid">${s.order.id} · ${s.order.op.toUpperCase()}</div>
+    <div class="bpart">${PARTS[s.partKey].family}</div>
+    <div class="bstat">${fmtT(s.start)} · ${s.dur}h · ${s.status}</div>`;
+  if(s.status!=='done'){
+    b.title='Drag to reschedule · click to manage';
+    const mn = el('span','bmenu'); mn.textContent='⋯'; mn.title='Manage this run (approve · hold · done · remove)';
+    mn.onpointerdown=(e)=>e.stopPropagation();
+    mn.onclick=(e)=>{ e.stopPropagation(); openBlockMenu(s, mn); };
+    b.appendChild(mn);
+    enableDrag(b,s,track);
+  }
+  track.appendChild(b);
+}
+
+function setPDCA(stage){
+  document.querySelectorAll('#pdca .step').forEach(s=>{
+    const on = s.dataset.p===stage;
+    s.classList.toggle('on', on);
+    if(on) s.classList.remove('ready');
+  });
+}
+
+// ======================= SCHEDULE FLOW (PLAN + DO) =======================
+let busy=false;
+
+// eligible lines for an operation, and a default slot on the best one
+function eligibleAssets(op){ return ASSETS.filter(a=>a.ops.includes(op)).map(a=>a.id); }
+function lineUp(a){ return a.run!=='down' && !a.lockout; }
+function planSlot(order){
+  const all = eligibleAssets(order.op);
+  const up = all.filter(id=>lineUp(ASSETS.find(x=>x.id===id)));
+  const pool = up.length ? up : all;                 // if none up, route anyway so it gets vetoed visibly
+  let best=null;
+  pool.forEach(id=>{
+    const a=ASSETS.find(x=>x.id===id);
+    const dur=round15(order.qty/a.rate + 0.5);
+    const start=firstFreeSlot(id,dur);
+    if(!best || start<best.start) best={assetId:id, start};   // earliest opening = load balance
+  });
+  return best || {assetId:(pool[0]||ASSETS[0].id), start:G_START};
+}
+
+function scheduleOrder(order){
+  if(busy) return;
+  const {assetId, start} = planSlot(order);
+  runNegotiation(order, order.part, assetId, start, {fromQueue:true});
+}
+
+// ---- Auto-Schedule: walk the queue, play each negotiation, place every order ----
+function autoSchedule(){
+  if(busy) return;
+  const list = [...ORDERS];
+  if(!list.length){ toast('Queue is empty — nothing to schedule'); return; }
+  let nC=0, nE=0, nB=0;
+  const btn=$('#autoBtn'); btn.disabled=true; btn.textContent='Scheduling…';
+  busy=true;
+  const proc=(i)=>{
+    if(i>=list.length){
+      busy=false; btn.disabled=false; btn.textContent='▶ Auto-Schedule All';
+      setPDCA('plan');
+      toast(`Auto-schedule done · ${nC} scheduled · ${nE} escalated · ${nB} blocked`);
+      return;
+    }
+    const order=list[i];
+    const {assetId, start}=planSlot(order);
+    runNegotiation(order, order.part, assetId, start, {
+      auto:true, fast:true,
+      onResolved:(oc)=>{
+        if(oc==='COMMIT') nC++; else if(oc==='ESCALATE') nE++; else nB++;
+        ORDERS = ORDERS.filter(o=>o.id!==order.id);
+        renderQueue();
+        setTimeout(()=>proc(i+1), 450);
+      }
+    });
+  };
+  proc(0);
+}
+
+function runNegotiation(order, partKey, assetId, startHr, opts={}){
+  busy=true;
+  opts.orderId = order.id;   // remember which order this negotiation belongs to
+  setPDCA('plan');
+  $('#feedpill').textContent='negotiating…';
+  const feed = $('#feed'); feed.innerHTML='';
+  const a = ASSETS.find(x=>x.id===assetId);
+
+  const result = orchestrate(order, partKey, assetId, startHr);
+
+  const intro = opts.fast ? 220 : INTRO_MS;
+  const stepMs = opts.fast ? 560 : STEP_MS;
+  const finMs  = opts.fast ? 380 : FINISH_MS;
+
+  // proposal header
+  const ph = el('div','proposal');
+  ph.innerHTML = `<div class="ptitle">${order.id} · ${order.op.toUpperCase()} · ${PARTS[partKey].family}</div>
+    <div class="psub">→ ${a.name} @ ${fmtT(startHr)} · ${result.dur}h · ${order.qty} km · ${order.cust}</div>`;
+  feed.appendChild(ph);
+
+  const order4 = ['maint','prod','qual','supp'];
+  let i=0;
+  const step=()=>{
+    if(i<order4.length){
+      const key=order4[i];
+      addMsg(feed, key, result.A[key]);
+      feed.scrollTop=feed.scrollHeight;
+      i++; setTimeout(step, stepMs);
+    } else {
+      setTimeout(()=>finishNegotiation(feed, result, opts), finMs);
+    }
+  };
+  setTimeout(step, intro);
+}
+
+function addMsg(feed, key, r){
+  const ag = AGENTS[key];
+  const m = el('div','msg '+ag.cls);
+  const posClass = r.veto ? 'VETO' : r.pos;
+  m.innerHTML = `<div class="avatar">${ag.av}</div>
+    <div class="bubble">
+      <div class="who">${ag.n} <span class="src">${ag.src}</span>
+        <span class="pos ${posClass}">${r.veto?'HARD VETO':r.pos}</span></div>
+      <div class="what">${r.why}</div>
+      <div class="tool">⛏ ${r.tool}</div>
+    </div>`;
+  feed.appendChild(m);
+}
+
+function finishNegotiation(feed, result, opts){
+  setPDCA('do');
+  $('#feedpill').textContent = result.outcome.toLowerCase();
+
+  // Orchestrator synthesis message
+  const o = el('div','msg m-orch');
+  o.innerHTML = `<div class="avatar">OR</div>
+    <div class="bubble"><div class="who">Orchestrator <span class="src">consensus</span></div>
+    <div class="what">${result.note}</div>
+    <div class="tool">familiarity ${result.fam.zone.toUpperCase()} (z=${result.fam.z.toFixed(2)}) · confidence ${(result.confidence*100|0)}%</div></div>`;
+  feed.appendChild(o);
+
+  // verdict card
+  const v = el('div','verdict '+result.outcome);
+  let head = result.outcome==='COMMIT'?'✓ COMMIT':result.outcome==='ESCALATE'?'⚠ ESCALATE':'✕ REJECT';
+  v.innerHTML = `<div class="vh">${head}</div>
+    <div class="vsub">${result.acc} Accept · ${result.con} Concede · ${result.obj} Object &nbsp;|&nbsp; ${LEVELMODE[level]}</div>`;
+
+  // ---- AUTO mode: no buttons, resolve and chain to the next order ----
+  if(opts.auto){
+    const oc = result.outcome;
+    if(oc==='COMMIT'){ commit(result,'committed'); logIt(`AUTO-COMMIT ${result.order.id} → ${result.assetId}`, result); }
+    else if(oc==='ESCALATE'){ pushEsc(result,'open'); logIt(`AUTO-ESCALATE ${result.order.id}`, result); }
+    else { pushBlocked(result); logIt(`AUTO-BLOCK ${result.order.id} — ${result.note}`, result); }
+    const col = oc==='COMMIT'?'var(--ok)':oc==='ESCALATE'?'var(--warn)':'var(--bad)';
+    v.querySelector('.vsub').innerHTML += `<br><span style="color:${col}">Auto-resolved → ${oc}${oc==='ESCALATE'?' (to tray)':oc==='REJECT'?' (to blocked)':' (to board)'}</span>`;
+    feed.appendChild(v); feed.scrollTop=feed.scrollHeight;
+    $('#needle').style.left = Math.min(96, result.fam.pct)+'%';
+    renderGantt(); renderEsc(); renderBlocked();
+    setTimeout(()=>{ if(opts.onResolved) opts.onResolved(oc); }, opts.fast?700:1400);
+    return;
+  }
+
+  const acts = el('div','acts');
+  // behaviour by autonomy level
+  if(result.outcome==='COMMIT'){
+    if(level>=4 && result.fam.zone!=='outlier'){
+      // auto-commit
+      v.querySelector('.vsub').innerHTML += `<br><span style="color:var(--ok)">Auto-committed under ${LEVELMODE[level]}.</span>`;
+      commit(result,'committed');
+      logIt(`AUTO-COMMIT ${result.order.id} → ${result.assetId}`, result);
+      toast(`${result.order.id} auto-committed to ${result.assetId}`);
+      finishWrap(opts);
+    } else if(level===1){
+      v.querySelector('.vsub').innerHTML += `<br><span style="color:var(--muted)">Shadow mode — proposal logged, nothing committed.</span>`;
+      logIt(`SHADOW proposal ${result.order.id}`, result);
+      finishWrap(opts);
+    } else {
+      const b=el('button','btn go'); b.textContent = level===2?'Accept recommendation':'Approve (1-click)';
+      b.onclick=()=>{ const at=commit(result, level===2?'committed':'approved'); v.remove();
+        logIt(`${level===2?'ACCEPTED':'APPROVED'} ${result.order.id} → ${result.assetId} @ ${fmtT(at)}`, result);
+        toast(`${result.order.id} on the board${result.relocated?' · moved to clear slot':''}`); finishWrap(opts); };
+      const ov=el('button','btn no'); ov.textContent='Override';
+      ov.onclick=()=>{ v.remove(); logIt(`OVERRIDE ${result.order.id} by planner`, result); toast('Override logged — system learns from it'); finishWrap(opts); };
+      acts.append(b,ov); v.appendChild(acts);
+    }
+  } else if(result.outcome==='ESCALATE'){
+    v.insertAdjacentHTML('beforeend', fixLine(result));
+    const b=el('button','btn alt'); b.textContent='Approve anyway';
+    b.onclick=()=>{ const at=commit(result,'escalated'); v.remove(); pushEsc(result,'resolved');
+      logIt(`PLANNER-APPROVED (escalated) ${result.order.id} → ${result.assetId} @ ${fmtT(at)}`, result);
+      toast(`${result.order.id} scheduled @ ${fmtT(at)}${result.relocated?' · moved to clear slot':''}`); finishWrap(opts); };
+    const r=el('button','btn no'); r.textContent='Send to tray';
+    r.onclick=()=>{ pushEsc(result,'open'); v.remove(); logIt(`ESCALATED ${result.order.id}`, result); finishWrap(opts); };
+    acts.append(b,r); v.appendChild(acts);
+  } else { // REJECT -> park in Blocked tray
+    v.insertAdjacentHTML('beforeend', fixLine(result));
+    const b=el('button','btn no'); b.textContent='File as blocked';
+    b.onclick=()=>{ pushBlocked(result); v.remove();
+      logIt(`BLOCKED ${result.order.id} — ${result.note}`, result);
+      toast(`${result.order.id} parked in Blocked Orders`); finishWrap(opts); };
+    acts.append(b); v.appendChild(acts);
+  }
+  feed.appendChild(v);
+  feed.scrollTop=feed.scrollHeight;
+
+  // move needle to this proposal's familiarity
+  $('#needle').style.left = Math.min(96, result.fam.pct)+'%';
+}
+
+function finishWrap(opts){
+  busy=false;
+  if(opts.fromQueue){ ORDERS = ORDERS.filter(o=>o.id!==(opts.orderId||_lastOrderId)); }
+  renderQueue();
+  renderGantt();
+}
+let _lastOrderId=null;
+
+function commit(result, status){
+  // remove any existing block for this order (reschedule case)
+  SCHED = SCHED.filter(s=>s.order.id!==result.order.id);
+  // never stack blocks: if the planned slot is now taken, drop into the next
+  // clear window on the same line so approvals can't double-book the asset.
+  let start = result.startHr;
+  if(hasOverlap(result.assetId, start, result.dur, result.order.id)){
+    start = firstFreeSlot(result.assetId, result.dur);
+    result.startHr = start;          // keep result/feed/log in sync with reality
+    result.relocated = true;
+  }
+  SCHED.push({order:result.order, partKey:result.partKey, assetId:result.assetId,
+    start, dur:result.dur, status, result});
+  return start;
+}
+
+// ---- remediation: turn the dominant blocking reason into a concrete next step ----
+function altLines(order, exceptId){
+  return eligibleAssets(order.op)
+    .filter(id=>id!==exceptId && lineUp(ASSETS.find(x=>x.id===id)))
+    .map(id=>ASSETS.find(x=>x.id===id).name);
+}
+function suggestFix(result){
+  const {order, assetId, dur, A} = result;
+  const a = ASSETS.find(x=>x.id===assetId), p = PARTS[result.partKey];
+  // most severe blocker first: hard veto, then highest-severity objection
+  const blocker = Object.entries(A)
+    .filter(([,r])=>r.veto || r.pos==='OBJECT')
+    .sort((x,y)=>(y[1].veto-x[1].veto)||(y[1].sev-x[1].sev))[0];
+  if(!blocker){                                   // no hard blocker (concessions / familiarity outlier)
+    const slot=firstFreeSlot(assetId,dur);
+    return `Park in the next clear window on ${a.name} at <b>${fmtT(slot)}</b>, or approve as-is under elevated monitoring.`;
+  }
+  const [key]=blocker;
+  if(key==='qual'){
+    if(p.regHold)        return `Clear the customer qualification / OTDR sign-off on ${p.family}, then re-release the order.`;
+    if(p.cpk<CRIT_CPK)   return `Hold — Cpk ${p.cpk} is below the ${CRIT_CPK} floor. Open a process-capability review on ${p.family} before any ${order.op} run; this can't be scheduled as-is.`;
+    return `Run a process review on ${p.family} (Cpk ${p.cpk}), or approve under elevated OTDR screening.`;
+  }
+  if(key==='supp'){
+    if(p.matAvail<order.qty) return `Only ${p.matAvail} km on hand for a ${order.qty} km run. Split into a <b>${p.matAvail} km</b> run now + backorder the rest, or wait for replenishment (${p.lead}d lead).`;
+    return `Material lead ${p.lead}d misses the ${order.due}d date. Expedite the preform or renegotiate the commitment with ${order.cust}.`;
+  }
+  if(key==='maint'){
+    const alts=altLines(order,assetId);
+    if(a.lockout) return alts.length ? `${a.name} is locked out. Route to <b>${alts[0]}</b>, or clear the safety tag first.`
+                                     : `${a.name} is locked out and no alternate ${order.op} line is up — clear the lockout before scheduling.`;
+    return alts.length ? `Asset condition ${a.health}%. Run the due PM on ${a.name} first, or route to <b>${alts[0]}</b>.`
+                       : `Asset condition ${a.health}%. Schedule the overdue PM on ${a.name} before loading this run.`;
+  }
+  if(key==='prod'){
+    const alts=altLines(order,assetId);
+    if(a.run==='down')            return alts.length ? `${a.name} is DOWN. Move to <b>${alts[0]}</b>, or restore the line.` : `${a.name} is DOWN and no alternate ${order.op} line is available — restore it first.`;
+    if(!a.ops.includes(order.op)) return alts.length ? `Wrong equipment. Route this ${order.op.toUpperCase()} run to <b>${alts[0]}</b>.` : `No line is configured for ${order.op.toUpperCase()}.`;
+    const need=order.qty/a.rate;
+    if(need>a.capH)               return `Run needs ${need.toFixed(1)}h vs ${a.name}'s ${a.capH}h window. Split into <b>${Math.ceil(need/a.capH)}× ≤${Math.floor(a.capH*a.rate)} km</b> campaigns.`;
+    const slot=firstFreeSlot(assetId,dur);
+    return `Slot is double-booked. Push to the next clear window on ${a.name} at <b>${fmtT(slot)}</b>.`;
+  }
+  return `Review the blocking constraint and re-submit.`;
+}
+function fixLine(result){
+  return `<div class="fixhint">💡 <b>Suggested fix:</b> ${suggestFix(result)}</div>`;
+}
+
+// ======================= ESCALATION TRAY =======================
+let ESC=[];
+let BLOCKED=[];
+
+// Trays start collapsed (header only) and grow to fit ~2 items once populated.
+// A manual drag pins the height and opts that tray out of auto-sizing.
+let manualResize={};
+function sizeTray(sectSel, varName, count, itemH){
+  const sect=$(sectSel); if(!sect) return;
+  if(!count){ sect.classList.add('tcollapsed'); return; }   // nothing in it → just the header
+  sect.classList.remove('tcollapsed');
+  if(manualResize[varName]) return;                          // honour the planner's own drag
+  const h = 60 + Math.min(count,2)*itemH;                    // header + padding + up to two items
+  $('#leftSplit').style.setProperty(varName, h+'px');
+}
+
+function pushBlocked(result){
+  if(!BLOCKED.find(b=>b.order.id===result.order.id)) BLOCKED.push(result);
+  renderBlocked();
+}
+function renderBlocked(){
+  const t=$('#blockedtray'); $('#blkct').textContent = BLOCKED.length?BLOCKED.length+' held':'';
+  sizeTray('#sectBlk','--bh',BLOCKED.length,104);
+  if(!BLOCKED.length){ t.innerHTML='<div class="hint">No blocked orders.<br>Hard-veto orders (no material, locked asset, reg hold, Cpk floor) park here until the condition clears.</div>'; return; }
+  t.innerHTML='';
+  BLOCKED.forEach(r=>{
+    const d=el('div','blk'); d.title='Click to replay the agent negotiation';
+    d.innerHTML=`<div class="bkid">${r.order.id} · ${PARTS[r.partKey].family}<span class="viewneg">ⓘ debate</span></div>
+      <div class="bkr">${r.note}</div>
+      <div class="fixhint mini">💡 ${suggestFix(r)}</div>`;
+    d.onclick=()=>openNegotiationModal(r);
+    const a=el('div','ea');
+    const rt=el('button','btn alt'); rt.textContent='Retry';
+    rt.onclick=(e)=>{ e.stopPropagation(); BLOCKED=BLOCKED.filter(x=>x.order.id!==r.order.id); ORDERS.push(r.order);
+      logIt(`RETRY ${r.order.id} → back to queue`, r); renderBlocked(); renderQueue(); toast(`${r.order.id} returned to queue`); };
+    const rm=el('button','btn no'); rm.textContent='Dismiss';
+    rm.onclick=(e)=>{ e.stopPropagation(); BLOCKED=BLOCKED.filter(x=>x.order.id!==r.order.id); logIt(`DISMISSED ${r.order.id}`, r); renderBlocked(); };
+    a.append(rt,rm); d.appendChild(a); t.appendChild(d);
+  });
+}
+function pushEsc(result, state){
+  if(state==='resolved'){ ESC=ESC.filter(e=>e.order.id!==result.order.id); renderEsc(); return; }
+  if(!ESC.find(e=>e.order.id===result.order.id)) ESC.push(result);
+  renderEsc();
+}
+function renderEsc(){
+  const t=$('#esctray'); $('#escct').textContent = ESC.length?ESC.length+' open':'';
+  sizeTray('#sectEsc','--eh',ESC.length,104);
+  if(!ESC.length){ t.innerHTML='<div class="hint">No escalations.<br>Conflicts the agents can\'t resolve land here for your call.</div>'; return; }
+  t.innerHTML='';
+  ESC.forEach(r=>{
+    const d=el('div','esc'); d.title='Click to replay the agent negotiation';
+    d.innerHTML=`<div class="eid">${r.order.id} → ${r.assetId}<span class="viewneg">ⓘ debate</span></div>
+      <div class="ec">${r.note}</div>
+      <div class="fixhint mini">💡 ${suggestFix(r)}</div>`;
+    d.onclick=()=>openNegotiationModal(r);
+    const a=el('div','ea');
+    const ap=el('button','btn alt'); ap.textContent='Approve';
+    ap.onclick=(e)=>{ e.stopPropagation(); const at=commit(r,'escalated'); ESC=ESC.filter(e2=>e2.order.id!==r.order.id);
+      logIt(`PLANNER-APPROVED ${r.order.id} → ${r.assetId} @ ${fmtT(at)}`, r);
+      toast(`${r.order.id} scheduled @ ${fmtT(at)}${r.relocated?' · moved to clear slot':''}`); renderEsc(); renderGantt(); };
+    const rj=el('button','btn no'); rj.textContent='Block';
+    rj.onclick=(e)=>{ e.stopPropagation(); ESC=ESC.filter(e2=>e2.order.id!==r.order.id); pushBlocked(r);
+      logIt(`BLOCKED ${r.order.id} (from escalation)`, r); toast(`${r.order.id} parked in Blocked Orders`); renderEsc(); };
+    a.append(ap,rj); d.appendChild(a); t.appendChild(d);
+  });
+}
+
+// ---------- replay a recorded negotiation in a popup ----------
+function openNegotiationModal(result){
+  const b=$('#negBody'); b.innerHTML='';
+  const a=ASSETS.find(x=>x.id===result.assetId);
+  const ph=el('div','proposal');
+  ph.innerHTML=`<div class="ptitle">${result.order.id} · ${result.order.op.toUpperCase()} · ${PARTS[result.partKey].family}</div>
+    <div class="psub">→ ${a?a.name:result.assetId} · ${result.order.qty} km · ${result.order.cust} · recorded at scheduling time</div>`;
+  b.appendChild(ph);
+  ['maint','prod','qual','supp'].forEach(k=>addMsg(b,k,result.A[k]));
+  const o=el('div','msg m-orch');
+  o.innerHTML=`<div class="avatar">OR</div><div class="bubble"><div class="who">Orchestrator <span class="src">consensus</span></div>
+    <div class="what">${result.note}</div>
+    <div class="tool">familiarity ${result.fam.zone.toUpperCase()} (z=${result.fam.z.toFixed(2)}) · confidence ${(result.confidence*100|0)}%</div></div>`;
+  b.appendChild(o);
+  const v=el('div','verdict '+result.outcome);
+  const head=result.outcome==='COMMIT'?'✓ COMMIT':result.outcome==='ESCALATE'?'⚠ ESCALATE':'✕ REJECT';
+  v.innerHTML=`<div class="vh">${head}</div><div class="vsub">${result.acc} Accept · ${result.con} Concede · ${result.obj} Object</div>`;
+  if(result.outcome!=='COMMIT') v.insertAdjacentHTML('beforeend', fixLine(result));
+  b.appendChild(v);
+  $('#negModal').classList.add('show');
+}
+function closeNegModal(){ $('#negModal').classList.remove('show'); }
+
+// ======================= CHECK + ACT =======================
+function completeRun(s){
+  if(busy) return;
+  setPDCA('check');
+  const feed=$('#feed'); feed.innerHTML='';
+  const a=ASSETS.find(x=>x.id===s.assetId), p=PARTS[s.partKey];
+  const ph=el('div','proposal');
+  ph.innerHTML=`<div class="ptitle">${s.order.id} · CHECK</div>
+    <div class="psub">Same four agents. Same MCP tools. New question: “you said it should run — here’s what happened.”</div>`;
+  feed.appendChild(ph);
+
+  // simulate actuals vs prediction. risk drives miss probability.
+  const risk = (a.health<55?0.4:0.08) + (p.cpk<1.2?0.35:0.05) + (s.status==='escalated'?0.25:0);
+  const cards=[
+    scoreCard('maint','Asset', a.health>=55 || rng()>risk, a.health>=55?'No unplanned stops. Asset held.':'Degradation event mid-run — predicted risk materialised.'),
+    scoreCard('prod','Output', rng()>risk*0.5, 'Ran in window, throughput within 4% of plan.'),
+    scoreCard('qual','Quality', p.cpk>=1.2 || rng()>risk, p.cpk>=1.2?`Cpk held at ${p.cpk}, zero scrap excursions.`:`Cpk dipped, ${(p.scrap*2).toFixed(1)}% scrap — flagged at PLAN as a concession.`),
+    scoreCard('supp','Delivery', rng()>0.12, 'Material held, commitment met.'),
+  ];
+  const hits=cards.filter(c=>c.hit).length;
+  const adherent = hits>=3;
+
+  const sd=el('div','scorecards'); feed.appendChild(sd);
+  busy=true;
+  let ci=0;
+  const showCard=()=>{
+    if(ci<cards.length){
+      const c=cards[ci], hit=c.hit;
+      const row=el('div','sc '+(hit?'hit':'miss'));
+      row.innerHTML=`<span class="dot" style="background:var(--${c.key})"></span>
+        <span class="scn">${AGENTS[c.key].n}</span><span class="scr">${c.txt}</span>
+        <span class="scv">${hit?'✓ HIT':'✕ MISS'}</span>`;
+      sd.appendChild(row); feed.scrollTop=feed.scrollHeight; ci++;
+      setTimeout(showCard, CARD_MS);
+    } else {
+      setTimeout(actPhase, 900);
+    }
+  };
+  setTimeout(showCard, 500);
+
+  function actPhase(){
+    setPDCA('act');
+    adherHits += hits; adherTotal += 4;
+    famRuns++;
+    if(adherent) famSpread = Math.max(0.55, famSpread*0.93);   // tighten "normal"
+    s.status='done';
+    const note=el('div','verdict '+(adherent?'COMMIT':'ESCALATE'));
+    note.innerHTML=`<div class="vh">${adherent?'✓ ADHERENT':'⚠ DEVIATION'}</div>
+      <div class="vsub">${hits}/4 agent predictions correct. Scorecard written to Consensus Log as the outcome half of the decision-outcome pair.<br>
+      <span style="color:var(--qual)">ACT:</span> familiarity distribution refined${adherent?' — “normal” tightened ~7%':' — deviation captured, no false tightening'}. The next ${s.partKey} proposal is scored against sharper data.</div>`;
+    feed.appendChild(note);
+    feed.scrollTop=feed.scrollHeight;
+    logIt(`SCORECARD ${s.order.id}: ${hits}/4 ${adherent?'adherent':'deviation'}`, s.result);
+    updateLoopUI();
+    saveMemory();
+    renderGantt();
+    busy=false;
+  }
+}
+
+// ---------- internal memory (persists across reloads when run locally) ----------
+const MEM_KEY='dispatchai_mem_v1';
+function seedMemory(){           // pre-trained baseline so the system isn't cold
+  famRuns=42; famSpread=0.9; adherHits=156; adherTotal=168;   // ~93% historical adherence
+}
+function loadMemory(){
+  try{
+    const raw=localStorage.getItem(MEM_KEY);
+    if(raw){ const m=JSON.parse(raw);
+      famRuns=m.famRuns; famSpread=m.famSpread; adherHits=m.adherHits; adherTotal=m.adherTotal; return true; }
+  }catch(e){}
+  return false;
+}
+function saveMemory(){
+  try{ localStorage.setItem(MEM_KEY, JSON.stringify({famRuns,famSpread,adherHits,adherTotal})); }catch(e){}
+}
+function wipeMemory(){ try{ localStorage.removeItem(MEM_KEY); }catch(e){} seedMemory(); saveMemory(); }
+
+function updateLoopUI(){
+  $('#famct').textContent = famRuns+' run'+(famRuns===1?'':'s');
+  $('#adher').textContent = adherTotal? Math.round(adherHits/adherTotal*100)+'%' : '—';
+  // Needle is owned by the negotiation flow — it always shows the familiarity
+  // of the proposal currently in the feed, so its meaning never flips. The
+  // "learning" effect shows up implicitly: as famSpread tightens, later
+  // proposals score further toward "outlier" for the same deviation.
+}
+
+// ======================= MANAGE A COMMITTED BLOCK =======================
+// click a block (or its ⋯) to approve / hold / block / requeue / remove / score
+let _menuEl=null;
+function closeBlockMenu(){
+  if(_menuEl){ _menuEl.remove(); _menuEl=null; document.removeEventListener('pointerdown', _menuOutside, true); }
+}
+function _menuOutside(e){ if(_menuEl && !_menuEl.contains(e.target)) closeBlockMenu(); }
+function openBlockMenu(s, anchorEl){
+  closeBlockMenu();
+  const m=el('div','blockmenu');
+  m.innerHTML=`<div class="bmtitle">${s.order.id} · ${s.order.op.toUpperCase()} · ${s.status}</div>`;
+  const add=(label,cls,fn)=>{ const x=el('button',cls); x.textContent=label;
+    x.onclick=(e)=>{ e.stopPropagation(); closeBlockMenu(); fn(); }; m.appendChild(x); };
+  add('✓ Done — run CHECK / ACT','go',()=>completeRun(s));
+  if(s.status!=='committed') add('✓ Approve → committed','go',()=>blockAction(s,'commit'));
+  if(s.status!=='escalated') add('⚠ Hold → escalations','alt',()=>blockAction(s,'hold'));
+  add('✕ Block → blocked tray','no',()=>blockAction(s,'block'));
+  add('↩ Return to queue','no',()=>blockAction(s,'queue'));
+  add('🗑 Remove from schedule','no',()=>blockAction(s,'remove'));
+  document.body.appendChild(m);
+  const r=anchorEl.getBoundingClientRect(), mw=m.offsetWidth, mh=m.offsetHeight;
+  let left=Math.min(r.left, window.innerWidth-mw-8);
+  let top=r.bottom+6; if(top+mh>window.innerHeight-8) top=Math.max(8, r.top-mh-6);
+  m.style.left=Math.max(8,left)+'px'; m.style.top=top+'px';
+  _menuEl=m;
+  setTimeout(()=>document.addEventListener('pointerdown', _menuOutside, true),0);
+}
+function blockAction(s, dest){
+  const r=s.result;
+  if(dest==='commit'){ s.status='committed'; if(r) r.outcome='COMMIT';
+    logIt(`APPROVED ${s.order.id} → committed`, r); toast(`${s.order.id} committed`); renderGantt(); return; }
+  SCHED=SCHED.filter(x=>x!==s);                       // the rest pull it off the board
+  if(dest==='hold'){ if(r) pushEsc(r,'open'); logIt(`HELD ${s.order.id} → escalations`, r); toast(`${s.order.id} → Escalations`); }
+  else if(dest==='block'){ if(r) pushBlocked(r); logIt(`BLOCKED ${s.order.id} (planner)`, r); toast(`${s.order.id} → Blocked`); }
+  else if(dest==='queue'){ if(!ORDERS.find(o=>o.id===s.order.id)) ORDERS.push(s.order);
+    logIt(`RETURNED ${s.order.id} → queue`, r); toast(`${s.order.id} back in queue`); renderQueue(); }
+  else { logIt(`REMOVED ${s.order.id} from schedule`, r); toast(`${s.order.id} removed`); }
+  renderGantt(); renderEsc(); renderBlocked();
+}
+
+// ======================= DRAG TO RESCHEDULE =======================
+function enableDrag(b, s, track){
+  let startX, startY, origLeft, dragging=false, moved=false;
+  b.addEventListener('pointerdown', e=>{
+    if(e.target.classList.contains('bdone')||e.target.classList.contains('bmenu')) return;
+    dragging=true; moved=false; b.setPointerCapture(e.pointerId);
+    startX=e.clientX; startY=e.clientY;
+    origLeft = b.offsetLeft;
+    e.preventDefault();
+  });
+  b.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    // only treat as a drag once the pointer actually moves — a clean click opens the menu
+    if(!moved && Math.abs(e.clientX-startX)+Math.abs(e.clientY-startY)>4){ moved=true; b.classList.add('dragging'); }
+    if(!moved) return;
+    const tw = track.offsetWidth;
+    let nl = origLeft + (e.clientX-startX);
+    nl = Math.max(0, Math.min(nl, tw - b.offsetWidth));
+    b.style.left = nl/tw*100+'%';
+    // vertical: detect row under pointer for reassignment
+    const rows=[...document.querySelectorAll('.gtrack')];
+    const hit = rows.find(r=>{ const rc=r.getBoundingClientRect(); return e.clientY>=rc.top && e.clientY<=rc.bottom; });
+    b.dataset.target = hit?hit.dataset.asset:s.assetId;
+    b.style.outline = (hit && hit.dataset.asset!==s.assetId)?'2px dashed var(--prod)':'none';
+  });
+  b.addEventListener('pointerup', e=>{
+    if(!dragging) return; dragging=false; b.classList.remove('dragging'); b.style.outline='none';
+    if(!moved){ openBlockMenu(s, b); return; }     // a click, not a drag → open the manage menu
+    const tw=track.offsetWidth;
+    let newStart = Math.round(G_START + (b.offsetLeft/tw)*G_HOURS);   // snap to the hour
+    newStart = Math.max(G_START, Math.min(newStart, G_END-s.dur));
+    const newAsset = b.dataset.target || s.assetId;
+    rescheduleBlock(s, newAsset, newStart);
+  });
+}
+
+function rescheduleBlock(s, newAsset, newStart){
+  // recompute duration on new asset rate, re-run agents quietly
+  const a=ASSETS.find(x=>x.id===newAsset);
+  const order = {...s.order};
+  const newDur = round15(order.qty/a.rate + 0.5);
+  const result = orchestrate(order, s.partKey, newAsset, newStart);
+  s.assetId=newAsset; s.start=newStart; s.dur=result.dur; s.result=result;
+  // new status from re-vote
+  if(result.outcome==='REJECT' || result.obj>=1 || hasOverlap(newAsset,newStart,result.dur,order.id)){
+    s.status='conflict';
+  } else if(result.outcome==='ESCALATE'){ s.status='escalated'; }
+  else { s.status = level>=4?'committed':'approved'; }
+  setPDCA('plan');
+  logIt(`RESCHEDULE ${order.id} → ${newAsset} @ ${fmtT(newStart)} : ${s.status.toUpperCase()}`, result);
+  // quick re-negotiation summary in feed
+  flashReassess(s, result);
+  renderGantt();
+  toast(s.status==='conflict'
+    ? `${order.id} moved — agents flag a CONFLICT`
+    : `${order.id} moved to ${newAsset} — agents re-voted: ${s.status}`);
+}
+
+function flashReassess(s, r){
+  const feed=$('#feed'); feed.innerHTML='';
+  const a=ASSETS.find(x=>x.id===s.assetId);
+  const ph=el('div','proposal');
+  ph.innerHTML=`<div class="ptitle">${s.order.id} · RE-ASSESS</div>
+    <div class="psub">moved → ${a.name} @ ${fmtT(s.start)} · agents re-voted instantly</div>`;
+  feed.appendChild(ph);
+  ['maint','prod','qual','supp'].forEach(k=>addMsg(feed,k,r.A[k]));
+  const v=el('div','verdict '+(s.status==='conflict'?'REJECT':s.status==='escalated'?'ESCALATE':'COMMIT'));
+  v.innerHTML=`<div class="vh">${s.status==='conflict'?'✕ CONFLICT':s.status==='escalated'?'⚠ ESCALATE':'✓ RE-COMMITTED'}</div>
+    <div class="vsub">${r.note}<br>familiarity ${r.fam.zone.toUpperCase()} · ${r.acc}A / ${r.con}C / ${r.obj}O</div>`;
+  feed.appendChild(v);
+  $('#needle').style.left=Math.min(96,r.fam.pct)+'%';
+}
+
+// ======================= LOG / UTIL =======================
+function logIt(txt, result){
+  const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  LOG.unshift({t,txt});
+  renderLog();
+}
+function renderLog(){
+  const t=$('#conlog'); if(!t) return;
+  $('#logct').textContent = LOG.length ? LOG.length+' event'+(LOG.length===1?'':'s') : '';
+  sizeTray('#sectLog','--lh',LOG.length,28);
+  if(!LOG.length){ t.innerHTML='<div class="hint">No decisions yet.<br>Every commit, escalation, override, and scorecard lands here as an auditable record.</div>'; return; }
+  t.innerHTML='';
+  LOG.slice(0,80).forEach(L=>{
+    const d=el('div','logitem');
+    d.innerHTML=`<span class="lt">${L.t}</span> &nbsp;${L.txt}`;
+    t.appendChild(d);
+  });
+}
+function fmtH(h){ const hh=Math.floor(h), mm=Math.round((h-hh)*60); return String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }
+let _seed=42; function rng(){ _seed=(_seed*1103515245+12345)&0x7fffffff; return _seed/0x7fffffff; }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600); }
+
+// ---------- random order generation ----------
+function freshSeed(){ _seed = (Date.now() ^ Math.floor(Math.random()*1e9)) & 0x7fffffff; }
+function makeOrder(){
+  const keys=Object.keys(PARTS);
+  const part=keys[Math.floor(rng()*keys.length)];
+  const op=['draw','draw','spool','spool','test','test','split','respool','respool'][Math.floor(rng()*9)];
+  const qty=[120,160,200,240,300,360][Math.floor(rng()*6)];
+  const due=2+Math.floor(rng()*7);
+  const c=CUSTS[Math.floor(rng()*CUSTS.length)];
+  return {id:'WO-'+(woCounter++), part, op, qty, due, cust:c[0], tier:c[1]};
+}
+// Build a deliberately balanced batch so Auto-Schedule lands a realistic
+// spread: a clear majority COMMIT, plus enough marginal + hard-veto orders to
+// fill the Escalations and Blocked trays. Outcome is driven by the part:
+//   clean  (SMF/BIF, healthy Cpk)         → COMMIT
+//   marginal (OM4 Cpk 1.10, one objector) → ESCALATE
+//   veto   (PMF sub-floor / DSF reg-hold / ULL short material) → REJECT/BLOCK
+const OP_POOL=['draw','draw','spool','spool','test','split','respool','respool'];
+function pushOrder(part, qtyPool, duePool){
+  const op=OP_POOL[Math.floor(rng()*OP_POOL.length)];
+  const qty=qtyPool[Math.floor(rng()*qtyPool.length)];
+  const due=duePool[Math.floor(rng()*duePool.length)];
+  const c=CUSTS[Math.floor(rng()*CUSTS.length)];
+  ORDERS.push({id:'WO-'+(woCounter++), part, op, qty, due, cust:c[0], tier:c[1]});
+}
+function generateOrders(){
+  ORDERS=[];
+  // ~16 clean → COMMIT (modest qty keeps them inside the "familiar" zone)
+  for(let i=0;i<16;i++) pushOrder(rng()<0.6?'SMF-G652D':'BIF-G657A2', [120,160,200], [4,5,6,7,8]);
+  // ~8 marginal → ESCALATE (Quality objects, the other three don't)
+  for(let i=0;i<8;i++)  pushOrder('MMF-OM4', [120,160,200,240,300], [3,4,5,6]);
+  // ~8 hard-veto → REJECT/BLOCK
+  const vetoParts=['PMF-SPEC','DSF-SPEC','ULL-G654E'];
+  for(let i=0;i<8;i++){
+    const part=vetoParts[i%vetoParts.length];
+    // ULL only vetoes when the run exceeds its 140 km material buffer
+    pushOrder(part, part==='ULL-G654E'?[160,200,240,300]:[120,160,200,240], [2,3,4,5]);
+  }
+  // Fisher–Yates shuffle so the queue isn't sorted by outcome
+  for(let i=ORDERS.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); const t=ORDERS[i]; ORDERS[i]=ORDERS[j]; ORDERS[j]=t; }
+}
+
+function addOrder(){
+  const o=makeOrder();
+  ORDERS.push(o);
+  renderQueue();
+  $('#queue').scrollTop=$('#queue').scrollHeight;
+  toast('Added '+o.id+' · '+o.op.toUpperCase()+' · '+PARTS[o.part].family);
+}
+
+// ---------- start mode: scratch (empty board) or existing (schedule around a prior plan) ----------
+let startMode = 'scratch';
+let exCounter = 4400;
+function prefillSchedule(){
+  // a pre-existing committed plan the agents must now schedule around
+  const cleanParts = Object.keys(PARTS).filter(k=>PARTS[k].cpk>=1.2 && !PARTS[k].regHold && PARTS[k].matAvail>=9999);
+  const seeds=[['DRAW-01','draw'],['DRAW-02','draw'],['SPOOL-05','spool'],['TEST-03','test'],['RESPOOL-04','respool']];
+  seeds.forEach(([assetId,op])=>{
+    const a=ASSETS.find(x=>x.id===assetId);
+    const part=cleanParts[Math.floor(rng()*cleanParts.length)];
+    const qty=[160,200,240,300][Math.floor(rng()*4)];
+    const dur=round15(qty/a.rate + 0.5);
+    const start=firstFreeSlot(assetId,dur);
+    const order={id:'EX-'+(exCounter++), part, op, qty, due:6+Math.floor(rng()*5), cust:'(prior plan)', tier:'T2'};
+    const result=orchestrate(order, part, assetId, start);
+    SCHED.push({order, partKey:part, assetId, start, dur:result.dur, status:'committed', result});
+  });
+}
+
+// ---------- reset: fresh random batch, default machine states; memory persists ----------
+const DEFAULT_RUN = {'DRAW-01':'running','DRAW-02':'running','SPOOL-05':'running','TEST-03':'running','RESPOOL-04':'running'};
+function resetDemo(){
+  SCHED=[]; ESC=[]; BLOCKED=[]; LOG=[];
+  busy=false; _lastOrderId=null; manualResize={};   // keep the planner's chosen trust level across resets
+  ASSETS.forEach(a=>{ a.run = DEFAULT_RUN[a.id] || 'running'; });
+  freshSeed(); woCounter=4471; exCounter=4400;
+  if(startMode==='existing') prefillSchedule();   // board starts with a prior plan
+  generateOrders();
+  document.querySelectorAll('#lvls button').forEach(x=>x.classList.toggle('sel', +x.dataset.l===level));
+  $('#lvlmode').textContent=LEVELMODE[level];
+  $('#feed').innerHTML=IDLE_HTML;
+  $('#feedpill').textContent='idle';
+  renderQueue(); renderGantt(); renderEsc(); renderBlocked(); renderLog(); updateLoopUI(); setPDCA('plan');
+  toast(startMode==='existing'
+    ? 'Reset · scheduling around an existing plan'
+    : 'Reset · fresh board, fresh random orders');
+}
+function applyStartMode(mode){
+  startMode=mode;
+  document.querySelectorAll('.qmodebtn').forEach(b=>b.classList.toggle('sel', b.dataset.mode===mode));
+  resetDemo();
+}
+
+// autonomy level switching
+$('#lvls').addEventListener('click', e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  level=+b.dataset.l;
+  document.querySelectorAll('#lvls button').forEach(x=>x.classList.toggle('sel', x===b));
+  $('#lvlmode').textContent = LEVELMODE[level];
+  toast('Trust ramp → L'+level+' · '+LEVELMODE[level]);
+});
+
+// patch finishWrap to track current order id for queue removal
+const _origSchedule = scheduleOrder;
+scheduleOrder = function(order){ _lastOrderId=order.id; _origSchedule(order); };
+
+// ======================= INIT =======================
+IDLE_HTML = $('#feed').innerHTML;        // snapshot for the idle negotiation panel
+$('#autoBtn').onclick = autoSchedule;
+$('#addOrder').onclick = addOrder;
+$('#resetDemo').onclick = resetDemo;
+$('#negClose').onclick = closeNegModal;
+$('#negModal').onclick = (e)=>{ if(e.target.id==='negModal') closeNegModal(); };
+document.querySelector('.qmode').addEventListener('click', e=>{
+  const b=e.target.closest('.qmodebtn'); if(b) applyStartMode(b.dataset.mode);
+});
+
+// ---- draggable dividers for Escalations / Blocked / Consensus Log ----
+(function setupResizers(){
+  const split=$('#leftSplit');
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const hpx=sel=>parseFloat(getComputedStyle($(sel)).height);
+  const TRAY_MIN=38, QUEUE_MIN=180;
+  // The Order Queue is the flexible pane and absorbs every change. Each resizer
+  // is the top edge of the tray below it: drag up to enlarge that tray (queue
+  // shrinks), drag down to shrink it (queue grows). A drag pins the height and
+  // opts the tray out of content-driven auto-sizing.
+  document.querySelectorAll('.resizer').forEach(h=>{
+    const cssVar=h.dataset.var, sect=h.dataset.sect;
+    let sy, sh, queueH;
+    h.addEventListener('pointerdown', e=>{
+      h.setPointerCapture(e.pointerId); h.classList.add('drag');
+      const s=$(sect);
+      sy=e.clientY; sh=hpx(sect); queueH=hpx('#sectQueue');
+      s.classList.remove('tcollapsed');
+      split.style.setProperty(cssVar, sh+'px');   // pin current height to avoid a jump
+      manualResize[cssVar]=true;
+      e.preventDefault();
+    });
+    h.addEventListener('pointermove', e=>{
+      if(!h.hasPointerCapture(e.pointerId)) return;
+      const d=e.clientY-sy;                        // tray grows as the edge is dragged up
+      let newH = clamp(sh - d, TRAY_MIN, sh + (queueH - QUEUE_MIN));
+      split.style.setProperty(cssVar, newH+'px');
+    });
+    h.addEventListener('pointerup', e=>{ h.classList.remove('drag'); try{h.releasePointerCapture(e.pointerId);}catch(_){} });
+  });
+})();
+if(!loadMemory()) seedMemory();          // pre-trained memory unless we've learned more before
+resetDemo();                             // build board + queue for the current start mode
+</script>
+<script>
+/* =====================================================================
+   DispatchAI LIVE BRIDGE — replaces the local simulation with the
+   multi-agent backend (FastAPI + LangGraph + LangChain) over WebSocket.
+   Contract: docs/websocket-contract.md (v1). Rendering stays 100% the
+   demo's own functions (addMsg / finishNegotiation / renderQueue / …).
+   Falls back to the local simulation whenever the backend is offline.
+   ===================================================================== */
+(function(){
+  const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') +
+    (location.protocol.startsWith('http') && location.host ? location.host : 'localhost:8000') + '/ws';
+
+  const localRunNegotiation = runNegotiation;   // offline fallback
+  const localSuggestFix = suggestFix;
+  const localResetDemo = resetDemo;
+
+  let ws = null, live = false, currentRun = null;
+
+  // tiny status badge so it's obvious which engine is talking
+  const badge = document.createElement('div');
+  badge.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:99;padding:4px 10px;'
+    + 'border-radius:12px;font:600 10px system-ui;letter-spacing:.4px;'
+    + 'background:rgba(0,0,0,.55);border:1px solid #333;pointer-events:none';
+  document.body.appendChild(badge);
+  function setBadge(){
+    badge.textContent = live ? '● LIVE multi-agent backend' : '● local simulation';
+    badge.style.color = live ? 'var(--ok)' : 'var(--muted)';
+  }
+  setBadge();
+
+  function hydrate(state){
+    ASSETS.length = 0;
+    state.assets.forEach(a => ASSETS.push(a));
+    Object.keys(PARTS).forEach(k => delete PARTS[k]);
+    Object.assign(PARTS, state.parts);
+    ORDERS = state.orders.slice();
+    renderQueue(); renderGantt();
+  }
+
+  function connect(){
+    try { ws = new WebSocket(WS_URL); } catch(e){ live = false; setBadge(); return; }
+    ws.onopen = () => {
+      live = true; setBadge();
+      ws.send(JSON.stringify({type:'get_state'}));
+      toast('Connected — orders, assets & agents now served by the backend');
+    };
+    ws.onclose = () => {
+      const wasLive = live;
+      live = false; setBadge();
+      if(currentRun) currentRun.fail();
+      chatOffline();
+      if(wasLive) toast('Backend offline — falling back to local simulation');
+      setTimeout(connect, 5000);
+    };
+    ws.onmessage = (ev) => {
+      let m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+      if(m.type === 'state'){ hydrate(m.payload); return; }
+      if(m.type && m.type.startsWith('chat_')){ chatHandle(m); return; }
+      if(currentRun && (currentRun.id === null || m.run_id === currentRun.id)) currentRun.handle(m);
+    };
+  }
+
+  // server fixes win; stored results without one use the local mirror
+  suggestFix = function(result){ return result.serverFix || localSuggestFix(result); };
+
+  resetDemo = function(){
+    localResetDemo();
+    if(live && ws && ws.readyState === 1) ws.send(JSON.stringify({type:'get_state'}));
+  };
+  $('#resetDemo').onclick = resetDemo;   // re-bind: init captured the old reference
+
+  runNegotiation = function(order, partKey, assetId, startHr, opts={}){
+    if(!live || !ws || ws.readyState !== 1)
+      return localRunNegotiation(order, partKey, assetId, startHr, opts);
+
+    busy = true;
+    opts.orderId = order.id;
+    setPDCA('plan');
+    $('#feedpill').textContent = 'negotiating…';
+    const feed = $('#feed'); feed.innerHTML = '';
+
+    // server streams positions the instant each concurrent agent lands;
+    // pace the *rendering* so the debate stays readable (demo feel)
+    const stepMs = opts.fast ? 560 : STEP_MS;
+    const queue = [];
+    let rendering = false;
+    function pump(){
+      if(rendering) return; rendering = true;
+      (function next(){
+        if(!queue.length){ rendering = false; return; }
+        queue.shift()();
+        feed.scrollTop = feed.scrollHeight;
+        setTimeout(next, stepMs);
+      })();
+    }
+
+    currentRun = {
+      id: null,
+      handle(m){
+        if(m.type === 'run_started'){
+          this.id = m.run_id;
+          const pl = m.payload;
+          queue.push(() => {
+            const ph = el('div','proposal');
+            ph.innerHTML = `<div class="ptitle">${pl.order.id} · ${pl.order.op.toUpperCase()} · ${pl.part_family}</div>
+              <div class="psub">→ ${pl.asset_name} @ ${pl.start_label} · ${pl.dur_h}h · ${pl.qty_km} km · ${pl.customer}</div>`;
+            feed.appendChild(ph);
+          });
+          pump();
+        } else if(m.type === 'agent_position'){
+          queue.push(() => addMsg(feed, m.agent_id, m.payload));
+          pump();
+        } else if(m.type === 'verdict'){
+          const pl = m.payload;
+          const result = {
+            order, partKey,
+            assetId: pl.schedule.asset_id, startHr: pl.schedule.start_hr,
+            dur: pl.schedule.dur_h, A: pl.positions,
+            acc: pl.acc, con: pl.con, obj: pl.obj,
+            outcome: pl.outcome, note: pl.note, confidence: pl.confidence,
+            fam: pl.familiarity, serverFix: pl.suggested_fix,
+          };
+          queue.push(() => { currentRun = null; finishNegotiation(feed, result, opts); });
+          pump();
+        } else if(m.type === 'error'){
+          queue.push(() => {
+            currentRun = null; busy = false;
+            $('#feedpill').textContent = 'error';
+            toast('Backend error: ' + (m.payload.message || 'unknown'));
+            if(opts.onResolved) opts.onResolved('REJECT');
+          });
+          pump();
+        }
+        // agent_started / orchestrator_note / agent_degraded need no extra
+        // rendering: positions and the verdict card carry their content
+      },
+      fail(){   // socket dropped mid-run → replay locally so the demo never stalls
+        currentRun = null; busy = false;
+        localRunNegotiation(order, partKey, assetId, startHr, opts);
+      },
+    };
+
+    ws.send(JSON.stringify({
+      type: 'schedule_order',
+      order: { id: order.id, part: order.part || partKey, op: order.op,
+               qty: order.qty, due: order.due, cust: order.cust, tier: order.tier || 'T2' },
+      asset_id: assetId,
+      start_hr: startHr,
+      fam_spread: famSpread || 1.0,
+      board: SCHED.filter(s => s.status !== 'done').map(s => ({
+        order_id: s.order.id, asset_id: s.assetId,
+        start: s.start, dur: s.dur, status: s.status,
+      })),
+    }));
+  };
+
+  /* ================== PLANT COPILOT (chat over the same WS) ==================
+     Ask anything about orders, lines, fiber types or the negotiation process.
+     Every tool the backend calls (CMMS / MES / QMMS / ERP / orchestrator
+     dry-runs) streams in as a chip — the multi-agent backend, visible. */
+
+  const boardSnapshot = () => SCHED.filter(s => s.status !== 'done').map(s => ({
+    order_id: s.order.id, asset_id: s.assetId, start: s.start, dur: s.dur, status: s.status,
+  }));
+
+  const SRC_COLOR = { CMMS:'var(--maint)', MES:'var(--prod)', 'MES/ERP':'var(--prod)',
+                      QMMS:'var(--qual)', ERP:'var(--supp)', ORCHESTRATOR:'var(--orch)' };
+
+  const chatCSS = document.createElement('style');
+  chatCSS.textContent = `
+  #dchat{position:fixed;right:12px;bottom:42px;width:380px;max-width:94vw;height:480px;max-height:72vh;
+    z-index:1500;display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--line2);
+    border-radius:12px;box-shadow:0 18px 50px rgba(20,40,28,.28);overflow:hidden;font-family:var(--body)}
+  #dchat.min{display:none}
+  #dchatHead{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);
+    background:var(--panel2);cursor:default}
+  #dchatHead .t{font-family:var(--cond);font-weight:600;letter-spacing:1.2px;text-transform:uppercase;font-size:12px}
+  #dchatHead .s{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.4px}
+  #dchatMin{margin-left:auto;background:transparent;border:1px solid var(--line2);color:var(--muted);
+    border-radius:5px;width:24px;height:24px;cursor:pointer;font-family:var(--mono);font-size:11px}
+  #dchatMin:hover{color:var(--txt);border-color:var(--txt)}
+  #dchatBody{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .dmsg{max-width:88%;padding:8px 11px;border-radius:10px;font-size:12.5px;line-height:1.5;
+    white-space:normal;word-wrap:break-word}
+  .dmsg.user{align-self:flex-end;background:rgba(33,178,76,.12);border:1px solid rgba(33,178,76,.3)}
+  .dmsg.bot{align-self:flex-start;background:var(--panel2);border:1px solid var(--line)}
+  .dmsg.bot ul{margin:4px 0 4px 16px}
+  .dmsg.bot code{font-family:var(--mono);font-size:11px;background:rgba(0,0,0,.06);padding:0 4px;border-radius:3px}
+  .dtool{align-self:flex-start;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;
+    color:var(--muted);padding:3px 8px;border-radius:6px;background:var(--panel2);
+    border:1px solid var(--line);border-left:3px solid var(--orch);animation:fadein .2s}
+  .dtool b{color:var(--txt);font-weight:600}
+  .dtool .src{font-weight:700;letter-spacing:.5px}
+  .dtyping{align-self:flex-start;display:flex;gap:4px;padding:10px 12px}
+  .dtyping i{width:6px;height:6px;border-radius:50%;background:var(--dim);animation:dblink 1.2s infinite}
+  .dtyping i:nth-child(2){animation-delay:.2s}.dtyping i:nth-child(3){animation-delay:.4s}
+  @keyframes dblink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+  .dsugg{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+  .dsugg button{font-family:var(--mono);font-size:10px;text-align:left;padding:6px 9px;border-radius:8px;
+    cursor:pointer;background:transparent;border:1px dashed var(--line2);color:var(--muted);transition:.15s}
+  .dsugg button:hover{color:var(--reply);border-color:var(--reply)}
+  #dchatRow{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);background:var(--panel2)}
+  #dchatIn{flex:1;background:var(--bg2);border:1px solid var(--line2);border-radius:8px;color:var(--txt);
+    font-family:var(--body);font-size:12.5px;padding:8px 10px;outline:none}
+  #dchatIn:focus{border-color:var(--reply)}
+  #dchatSend{background:var(--reply);border:1px solid var(--reply);color:#fff;border-radius:8px;
+    padding:0 14px;cursor:pointer;font-family:var(--cond);font-weight:600;letter-spacing:1px;text-transform:uppercase;font-size:11px}
+  #dchatSend:hover{background:var(--reply-d)}
+  #dchatSend:disabled{opacity:.5;cursor:default}
+  #dchatToggle{position:fixed;right:12px;bottom:42px;z-index:1499;display:none;align-items:center;gap:7px;
+    background:var(--bg2);border:1px solid var(--reply);color:var(--txt);border-radius:20px;padding:8px 14px;
+    cursor:pointer;font-family:var(--cond);font-weight:600;font-size:12px;letter-spacing:.8px;text-transform:uppercase;
+    box-shadow:0 8px 26px rgba(33,178,76,.25)}
+  #dchatToggle:hover{background:rgba(33,178,76,.08)}
+  #dchatToggle .dot{width:7px;height:7px;border-radius:50%;background:var(--reply);animation:dblink 1.6s infinite}
+  .woform label{display:block;font-family:var(--mono);font-size:10px;color:var(--muted);
+    letter-spacing:.6px;text-transform:uppercase;margin:10px 0 4px}
+  .woform input,.woform select{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:6px;
+    color:var(--txt);font-family:var(--body);font-size:13px;padding:8px 10px;outline:none}
+  .woform input:focus,.woform select:focus{border-color:var(--reply)}
+  .woform .worow{display:flex;gap:8px;margin-top:16px}
+  .woform .worow .btn{flex:1;text-align:center}
+  .wohint{font-family:var(--mono);font-size:9.5px;color:var(--dim);margin-top:12px;line-height:1.6}`;
+  document.head.appendChild(chatCSS);
+
+  document.body.insertAdjacentHTML('beforeend', `
+  <button id="dchatToggle"><span class="dot"></span>Ask DispatchAI</button>
+  <div id="dchat" class="min">
+    <div id="dchatHead">
+      <div>
+        <div class="t">DispatchAI Copilot</div>
+        <div class="s" id="dchatSub">multi-agent backend · 18 plant tools</div>
+      </div>
+      <button id="dchatMin" title="Minimize">—</button>
+    </div>
+    <div id="dchatBody"></div>
+    <div id="dchatRow">
+      <input id="dchatIn" placeholder="Ask about orders, lines, fiber types…" autocomplete="off">
+      <button id="dchatSend">Ask</button>
+    </div>
+  </div>
+  <div class="modal" id="woModal">
+    <div class="modalbox" style="width:min(440px,92vw)">
+      <button class="modalx" id="woClose">✕</button>
+      <div class="modalhd">New work order → 4-agent negotiation</div>
+      <div class="woform">
+        <label>Order id</label><input id="woId">
+        <label>Fiber type</label><select id="woPart"></select>
+        <label>Operation</label><select id="woOp"></select>
+        <label>Quantity (km)</label><input id="woQty" type="number" min="10" step="10" value="200">
+        <label>Due in (days)</label><input id="woDue" type="number" min="1" max="14" value="5">
+        <label>Customer</label><select id="woCust"></select>
+        <div class="worow">
+          <button class="btn" id="woAdd">+ Queue it</button>
+          <button class="btn go" id="woGo">🤝 Negotiate now</button>
+        </div>
+        <div class="wohint">Maintenance (CMMS) · Production (MES) · Quality (QMMS) · Supply Chain (ERP)
+        will independently verify line health, capacity, Cpk and material before this lands on the board.</div>
+      </div>
+    </div>
+  </div>`);
+
+  const chatBody = $('#dchatBody'), chatIn = $('#dchatIn');
+  const CHAT_HIST = [];
+  let chatBusy = false, typingEl = null;
+
+  function mdLite(t){
+    t = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+         .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
+         .replace(/`([^`]+)`/g,'<code>$1</code>')
+         .replace(/\*([^*\n]+)\*/g,'<i>$1</i>');
+    let out = '', inUl = false;
+    for(const ln of t.split('\n')){
+      if(/^\s*[-•] /.test(ln)){ if(!inUl){ out += '<ul>'; inUl = true; } out += '<li>' + ln.replace(/^\s*[-•] /,'') + '</li>'; }
+      else { if(inUl){ out += '</ul>'; inUl = false; } out += ln + '<br>'; }
+    }
+    return out + (inUl ? '</ul>' : '');
+  }
+  function chatScroll(){ chatBody.scrollTop = chatBody.scrollHeight; }
+  function addChatMsg(who, text){
+    const d = el('div','dmsg ' + who);
+    if(who === 'bot') d.innerHTML = mdLite(text); else d.textContent = text;
+    chatBody.appendChild(d); chatScroll();
+  }
+  function showTyping(){ typingEl = el('div','dtyping'); typingEl.innerHTML = '<i></i><i></i><i></i>'; chatBody.appendChild(typingEl); chatScroll(); }
+  function hideTyping(){ if(typingEl){ typingEl.remove(); typingEl = null; } }
+
+  function chatHandle(m){
+    if(m.type === 'chat_started'){
+      $('#dchatSub').textContent = m.payload.llm
+        ? 'LLM live · LangGraph + 18 MCP tools' : 'rules mode · 18 MCP tools (set OPENAI_API_KEY for free-form)';
+    } else if(m.type === 'chat_tool_call'){
+      const p = m.payload;
+      const c = el('div','dtool');
+      c.style.borderLeftColor = SRC_COLOR[p.source] || 'var(--orch)';
+      const args = Object.values(p.args || {}).join(', ');
+      c.innerHTML = `<span class="src" style="color:${SRC_COLOR[p.source]||'var(--orch)'}">${p.source}</span>
+        <b>${p.tool}</b>${args ? ' · ' + args : ''}`;
+      hideTyping(); chatBody.appendChild(c); showTyping(); chatScroll();
+    } else if(m.type === 'chat_response'){
+      hideTyping(); chatBusy = false; $('#dchatSend').disabled = false;
+      addChatMsg('bot', m.payload.text);
+      CHAT_HIST.push({role:'assistant', content:m.payload.text});
+    }
+  }
+  function chatOffline(){
+    if(chatBusy){ hideTyping(); chatBusy = false; $('#dchatSend').disabled = false;
+      addChatMsg('bot','⚡ Lost the backend mid-answer — it will reconnect automatically.'); }
+  }
+  function chatSend(text){
+    text = (text || chatIn.value).trim();
+    if(!text || chatBusy) return;
+    chatIn.value = '';
+    chatBody.querySelector('.dsugg')?.remove();
+    addChatMsg('user', text);
+    if(!live || !ws || ws.readyState !== 1){
+      addChatMsg('bot','⚡ The copilot needs the backend. Start it with `python main.py serve` and reload.');
+      return;
+    }
+    CHAT_HIST.push({role:'user', content:text});
+    chatBusy = true; $('#dchatSend').disabled = true; showTyping();
+    ws.send(JSON.stringify({ type:'chat', text,
+      history: CHAT_HIST.slice(0,-1).slice(-12), board: boardSnapshot() }));
+  }
+  function chatGreeting(){
+    addChatMsg('bot', 'I answer from the **live plant systems** — every chip you see below an answer ' +
+      'is a real CMMS / MES / QMMS / ERP tool call, and I can dry-run the full 4-agent negotiation for any order.');
+    const sg = el('div','dsugg');
+    ['Why would WO-4480 fail?','Which line is in the best shape?',
+     'Status of MMF-OM4?','What should I schedule first and why?'].forEach(q => {
+      const b = document.createElement('button'); b.textContent = q;
+      b.onclick = () => chatSend(q); sg.appendChild(b);
+    });
+    chatBody.appendChild(sg);
+  }
+  function openChat(){ $('#dchat').classList.remove('min'); $('#dchatToggle').style.display = 'none';
+    if(!chatBody.childElementCount) chatGreeting(); chatIn.focus(); }
+  function closeChat(){ $('#dchat').classList.add('min'); $('#dchatToggle').style.display = 'flex'; }
+  $('#dchatToggle').onclick = openChat;
+  $('#dchatMin').onclick = closeChat;
+  $('#dchatSend').onclick = () => chatSend();
+  chatIn.addEventListener('keydown', e => { if(e.key === 'Enter') chatSend(); });
+  $('#dchatToggle').style.display = 'flex';
+
+  /* ================== NEW WORK ORDER FORM ==================
+     replaces the demo's random "+ Add Order" with real order entry,
+     dispatched through the live multi-agent negotiation. */
+  function freshWoId(){
+    let n = 9000 + Math.floor(Math.random() * 900);
+    while(ORDERS.some(o => o.id === 'WO-' + n) || SCHED.some(s => s.order.id === 'WO-' + n)) n++;
+    return 'WO-' + n;
+  }
+  function openWoModal(){
+    if(busy) return;
+    $('#woId').value = freshWoId();
+    const ps = $('#woPart'); ps.innerHTML = '';
+    Object.entries(PARTS).forEach(([k, p]) => {
+      const o = document.createElement('option'); o.value = k;
+      o.textContent = `${k} — ${p.family} (Cpk ${p.cpk})`; ps.appendChild(o);
+    });
+    const os = $('#woOp'); os.innerHTML = '';
+    [...new Set(ASSETS.flatMap(a => a.ops))].forEach(op => {
+      const o = document.createElement('option'); o.value = op;
+      o.textContent = op.toUpperCase(); os.appendChild(o);
+    });
+    const cs = $('#woCust'); cs.innerHTML = '';
+    CUSTS.forEach(([name, tier]) => {
+      const o = document.createElement('option'); o.value = name;
+      o.dataset.tier = tier; o.textContent = `${name} (${tier})`; cs.appendChild(o);
+    });
+    $('#woModal').classList.add('show');
+  }
+  function readWoForm(){
+    const id = $('#woId').value.trim() || freshWoId();
+    const qty = Math.max(10, +$('#woQty').value || 200);
+    const due = Math.min(14, Math.max(1, +$('#woDue').value || 5));
+    const cs = $('#woCust');
+    return { id, part: $('#woPart').value, op: $('#woOp').value, qty, due,
+             cust: cs.value, tier: cs.selectedOptions[0].dataset.tier };
+  }
+  function closeWoModal(){ $('#woModal').classList.remove('show'); }
+  $('#woClose').onclick = closeWoModal;
+  $('#woModal').onclick = e => { if(e.target.id === 'woModal') closeWoModal(); };
+  $('#woAdd').onclick = () => {
+    const o = readWoForm(); closeWoModal();
+    ORDERS.unshift(o); renderQueue();
+    toast(`Queued ${o.id} · ${o.op.toUpperCase()} · ${o.qty} km — click it to negotiate`);
+  };
+  $('#woGo').onclick = () => {
+    const o = readWoForm(); closeWoModal();
+    ORDERS.unshift(o); renderQueue();
+    scheduleOrder(o);
+  };
+  addOrder = openWoModal;
+  $('#addOrder').onclick = openWoModal;     // re-bind: init captured the old reference
+  $('#addOrder').textContent = '+ New Order';
+
+  connect();
+})();
+</script>
+</body>
+</html>
